@@ -7,11 +7,8 @@ import random
 import math
 import subprocess
 
-# Play 12000.wav at start using aplay (system audio player)
-try:
-    subprocess.Popen(['aplay', './12000.wav'])
-except Exception as e:
-    print(f"Could not play sound: {e}")
+# Global handle to the sound process
+sound_process = None
 
 ROBOFLOW_API_KEY = "KufuKK4oeLFhc2LYQwKl"
 ROBOFLOW_MODEL_URL = "https://detect.roboflow.com/cheryldogs/1?api_key=" + ROBOFLOW_API_KEY
@@ -32,7 +29,7 @@ last_positions = {}
 MOVE_THRESHOLD = 5  # pixels
 
 def fetch_detections(frame):
-    global timer_start, latest_detections, latest_frame_shape
+    global timer_start, latest_detections, latest_frame_shape, sound_process
 
     height, width, _ = frame.shape
     resized = cv2.resize(frame, FRAME_RESIZE)
@@ -54,9 +51,26 @@ def fetch_detections(frame):
                 latest_detections = detections
                 latest_frame_shape = frame.shape
 
-            # Check detection classes
+            # Detection logic
             dog_wo_collar_detected = any(det['class'] == "dog_without_collar" for det in detections)
             dog_w_collar_detected = any(det['class'] == "dog_with_collar" for det in detections)
+
+            # Play/stop audio logic
+            if dog_wo_collar_detected and not dog_w_collar_detected:
+                # Play sound if not already playing
+                if sound_process is None or sound_process.poll() is not None:
+                    try:
+                        sound_process = subprocess.Popen(['aplay', './12000.wav'])
+                    except Exception as e:
+                        print(f"Could not play sound: {e}")
+            else:
+                # Stop sound if playing
+                if sound_process is not None and sound_process.poll() is None:
+                    try:
+                        sound_process.terminate()
+                        sound_process = None
+                    except Exception as e:
+                        print(f"Could not stop sound: {e}")
 
             # Write detection state to file
             if dog_wo_collar_detected:
