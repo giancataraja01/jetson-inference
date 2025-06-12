@@ -95,17 +95,19 @@ class ButtonApp:
         btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.start_camera_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # --- Speaker Dropdown (auto-play on selection) ---
-        self.speaker_files = ['12000.wav', '15000.wav', '20000.wav', '40000.wav', '50000.wav', '60000.wav']
+        # --- Speaker Dropdown with "Select Frequency" default ---
+        self.speaker_files = [
+            'Select Frequency', 
+            '12000.wav', '15000.wav', '20000.wav', '40000.wav', '50000.wav', '60000.wav'
+        ]
         self.speaker_var = tk.StringVar()
-        self.speaker_var.set(self.speaker_files[0])
+        self.speaker_var.set('Select Frequency')
         self.speaker_dropdown = ttk.Combobox(
             main_frame, textvariable=self.speaker_var, values=self.speaker_files, font=button_font, state='readonly'
         )
         self.speaker_dropdown.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_selected)
-        # Optionally, play the default selection at startup
-        self.play_speaker_selected(self.speaker_files[0])
+        # Do NOT play anything at startup!
 
         btn3 = tk.Button(main_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
         btn3.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
@@ -145,7 +147,8 @@ class ButtonApp:
 
     def on_speaker_selected(self, event):
         selected_file = self.speaker_var.get()
-        self.play_speaker_selected(selected_file)
+        if selected_file != 'Select Frequency':
+            self.play_speaker_selected(selected_file)
 
     def play_speaker_selected(self, selected_file):
         print(f"Playing sound: {selected_file}")
