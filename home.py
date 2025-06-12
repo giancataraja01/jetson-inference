@@ -114,10 +114,16 @@ class ButtonApp:
         self.distance_label.grid(row=4, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
         # --- Start/Stop Dynamic Distance Monitoring ---
-        self.btn_start_monitor = tk.Button(main_frame, text="Start Distance Monitoring", font=button_font, command=self.start_distance_monitoring, bg="#34be13", fg="white")
+        self.btn_start_monitor = tk.Button(
+            main_frame, text="Start Monitor", font=button_font,
+            command=self.start_distance_monitoring, bg="#34be13", fg="white"
+        )
         self.btn_start_monitor.grid(row=5, column=0, sticky="nsew", padx=5, pady=5)
 
-        self.btn_stop_monitor = tk.Button(main_frame, text="Stop Distance Monitoring", font=button_font, command=self.stop_distance_monitoring, bg="#be1340", fg="white")
+        self.btn_stop_monitor = tk.Button(
+            main_frame, text="Stop Monitor", font=button_font,
+            command=self.stop_distance_monitoring, bg="#be1340", fg="white"
+        )
         self.btn_stop_monitor.grid(row=5, column=1, sticky="nsew", padx=5, pady=5)
 
         quit_button = tk.Button(master, text="Quit", command=self.close_window, bg="#c42b2b", fg="white")
