@@ -7,9 +7,9 @@ import random
 import math
 import subprocess
 
-# Play 15000.wav at start using aplay (system audio player)
+# Play 12000.wav at start using aplay (system audio player)
 try:
-    subprocess.Popen(['aplay', './15000.wav'])
+    subprocess.Popen(['aplay', './12000.wav'])
 except Exception as e:
     print(f"Could not play sound: {e}")
 
