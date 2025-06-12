@@ -72,10 +72,12 @@ class ButtonApp:
     def __init__(self, master):
         self.master = master
         master.title("Dog Detection")
-        master.geometry("400x450") # Extra space for distance display
+        master.geometry("400x500")  # Slightly larger for new buttons
 
         self.camera_process = None
         self.speaker_process = None
+        self.distance_monitoring = False
+        self.distance_job = None
 
         button_font = font.Font(family='Helvetica', size=12, weight='bold')
 
@@ -84,11 +86,8 @@ class ButtonApp:
 
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
-        main_frame.grid_rowconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(1, weight=1)
-        main_frame.grid_rowconfigure(2, weight=1)
-        main_frame.grid_rowconfigure(3, weight=1)
-        main_frame.grid_rowconfigure(4, weight=1)
+        for i in range(6):  # Add more rows for new controls
+            main_frame.grid_rowconfigure(i, weight=1)
 
         btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.action1_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
@@ -113,6 +112,13 @@ class ButtonApp:
         self.distance_var.set("Distance: N/A")
         self.distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
         self.distance_label.grid(row=4, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+
+        # --- Start/Stop Dynamic Distance Monitoring ---
+        self.btn_start_monitor = tk.Button(main_frame, text="Start Distance Monitoring", font=button_font, command=self.start_distance_monitoring, bg="#34be13", fg="white")
+        self.btn_start_monitor.grid(row=5, column=0, sticky="nsew", padx=5, pady=5)
+
+        self.btn_stop_monitor = tk.Button(main_frame, text="Stop Distance Monitoring", font=button_font, command=self.stop_distance_monitoring, bg="#be1340", fg="white")
+        self.btn_stop_monitor.grid(row=5, column=1, sticky="nsew", padx=5, pady=5)
 
         quit_button = tk.Button(master, text="Quit", command=self.close_window, bg="#c42b2b", fg="white")
         quit_button.pack(pady=10)
@@ -183,8 +189,48 @@ class ButtonApp:
         else:
             print("No camera process is running.")
 
+    # --- Dynamic distance monitoring ---
+    def start_distance_monitoring(self):
+        if not self.distance_monitoring:
+            self.distance_monitoring = True
+            self.update_distance()
+            print("Distance monitoring started.")
+
+    def stop_distance_monitoring(self):
+        self.distance_monitoring = False
+        if self.distance_job is not None:
+            self.master.after_cancel(self.distance_job)
+            self.distance_job = None
+        print("Distance monitoring stopped.")
+
+    def update_distance(self):
+        if self.distance_monitoring:
+            try:
+                result = measure_distance()
+                if result is not None:
+                    distance_cm, distance_m = result
+                    self.distance_var.set(f"Distance: {distance_cm} cm ({distance_m} m)")
+                    print(f"[Live] Distance: {distance_cm} cm ({distance_m} m)")
+                    # Optionally update Firebase
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    distance_ref.set({
+                        'cm': distance_cm,
+                        'm': distance_m,
+                        'timestamp': timestamp
+                    })
+                else:
+                    self.distance_var.set("Distance: Error")
+            except Exception as e:
+                self.distance_var.set("Distance: Error")
+                print(f"Exception in live distance: {e}")
+            # Schedule next update in 500 ms
+            self.distance_job = self.master.after(500, self.update_distance)
+        else:
+            self.distance_var.set("Distance: N/A")
+
     def close_window(self):
         print("Closing the application...")
+        self.stop_distance_monitoring()
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
             print("Camera process terminated on exit.")
