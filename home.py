@@ -89,7 +89,8 @@ class ButtonApp:
         for i in range(6):  # Add more rows for new controls
             main_frame.grid_rowconfigure(i, weight=1)
 
-        btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.action1_clicked)
+        # Start button now starts the camera!
+        btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.start_camera_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
         btn2 = tk.Button(main_frame, text="Test Speaker", font=button_font, command=self.action2_clicked)
@@ -131,8 +132,16 @@ class ButtonApp:
 
         master.protocol("WM_DELETE_WINDOW", self.close_window)
 
-    def action1_clicked(self):
-        print("Button 'Action 1' was clicked!")
+    def start_camera_clicked(self):
+        print("Start button pressed! Starting camera...")
+        try:
+            if self.camera_process and self.camera_process.poll() is None:
+                self.camera_process.terminate()
+                print("Existing camera process terminated.")
+            self.camera_process = subprocess.Popen(['python3', 'my_detection.py'])
+            print("Camera started.")
+        except Exception as e:
+            print(f"Failed to start camera: {e}")
 
     def action2_clicked(self):
         print("Button 'Test Speaker' was clicked!")
