@@ -6,6 +6,14 @@ import threading
 import random
 import math
 
+# Play audio at start
+import simpleaudio as sa
+try:
+    wave_obj = sa.WaveObject.from_wave_file("15000.wav")
+    play_obj = wave_obj.play()
+except Exception as e:
+    print(f"Could not play sound: {e}")
+
 ROBOFLOW_API_KEY = "N34uDqAhCa3Xj2p4rHyd"
 ROBOFLOW_MODEL_URL = "https://detect.roboflow.com/villamor/8?api_key=" + ROBOFLOW_API_KEY
 USE_WEBCAM = True
