@@ -13,7 +13,7 @@ try:
 except Exception as e:
     print(f"Could not play sound: {e}")
 
-ROBOFLOW_API_KEY = "rf_6GUMiY8eOqhpXDsYb9EcQJ1XDPC2"
+ROBOFLOW_API_KEY = "KufuKK4oeLFhc2LYQwKl"
 ROBOFLOW_MODEL_URL = "https://detect.roboflow.com/cheryldogs/1?api_key=" + ROBOFLOW_API_KEY
 USE_WEBCAM = True
 IMAGE_PATH = "test.jpg"
