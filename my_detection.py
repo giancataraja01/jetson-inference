@@ -5,6 +5,7 @@ import time
 import threading
 import random
 import math
+import pygame  # For sound playback
 
 ROBOFLOW_API_KEY = "N34uDqAhCa3Xj2p4rHyd"
 ROBOFLOW_MODEL_URL = "https://detect.roboflow.com/villamor/8?api_key=" + ROBOFLOW_API_KEY
@@ -24,6 +25,25 @@ lock = threading.Lock()
 last_positions = {}
 last_frequencies = {}
 MOVE_THRESHOLD = 5  # pixels
+
+# Sound control globals
+sound_playing = False
+sound_lock = threading.Lock()
+
+def play_sound():
+    global sound_playing
+    with sound_lock:
+        if not sound_playing:
+            pygame.mixer.music.load("15000.wav")
+            pygame.mixer.music.play(-1)  # Loop
+            sound_playing = True
+
+def stop_sound():
+    global sound_playing
+    with sound_lock:
+        if sound_playing:
+            pygame.mixer.music.stop()
+            sound_playing = False
 
 def fetch_detections(frame):
     global timer_start, latest_detections, latest_frame_shape
@@ -161,6 +181,7 @@ def gstreamer_pipeline(
     )
 
 def main():
+    global sound_playing
     if USE_WEBCAM:
         cap = cv2.VideoCapture(gstreamer_pipeline(), cv2.CAP_GSTREAMER)
         if not cap.isOpened():
@@ -173,6 +194,8 @@ def main():
             return
 
     print("✅ Roboflow Detection Running. Press 'q' to quit.")
+
+    pygame.mixer.init()  # Initialize sound
 
     last_sent_time = 0
     send_thread = None
@@ -196,6 +219,18 @@ def main():
 
         draw_detections(frame)
 
+        # --- SOUND CONTROL LOGIC ---
+        with lock:
+            dets = latest_detections.copy()
+        dog_wo_collar = any(det['class'] == "dog_without_collar" for det in dets)
+        dog_w_collar = any(det['class'] == "dog_with_collar" for det in dets)
+
+        if dog_wo_collar and not dog_w_collar:
+            play_sound()
+        else:
+            stop_sound()
+        # --- END SOUND CONTROL LOGIC ---
+
         cv2.imshow("Roboflow Detection", frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -208,6 +243,7 @@ def main():
     if USE_WEBCAM:
         cap.release()
     cv2.destroyAllWindows()
+    stop_sound()  # Ensure sound is stopped when quitting
 
 if __name__ == "__main__":
     main()
