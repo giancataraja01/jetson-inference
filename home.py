@@ -95,13 +95,12 @@ class ButtonApp:
         btn1 = tk.Button(main_frame, text="Start Detection", font=button_font, command=self.start_camera_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # --- Stop Detection Button (ADDED) ---
+        # --- Stop Detection Button ---
         btn_stop_detection = tk.Button(
             main_frame, text="Stop Detection", font=button_font,
             command=self.stop_detection_clicked, bg="#be1313", fg="white"
         )
         btn_stop_detection.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
-        # --------------------------------------
 
         # --- Speaker Dropdown with "Select Frequency" default ---
         self.speaker_files = [
@@ -264,14 +263,14 @@ class ButtonApp:
         else:
             self.distance_var.set("Distance: N/A")
 
-    # --- Stop Detection Handler (ADDED) ---
+    # --- Stop Detection Handler ---
     def stop_detection_clicked(self):
         # Stop camera process
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
             print("Camera process terminated by Stop Detection.")
             self.camera_process = None
-        # Stop speaker process
+        # Stop speaker process (AUDIO)
         if self.speaker_process and self.speaker_process.poll() is None:
             self.speaker_process.terminate()
             print("Speaker process terminated by Stop Detection.")
@@ -279,7 +278,6 @@ class ButtonApp:
         # Stop distance monitoring
         self.stop_distance_monitoring()
         print("All detection processes stopped.")
-    # --------------------------------------
 
     def close_window(self):
         print("Closing the application...")
