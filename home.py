@@ -159,9 +159,15 @@ class ButtonApp:
     def play_speaker_selected(self, selected_file):
         print(f"Playing sound: {selected_file}")
         try:
+            # Stop any existing speaker process
             if self.speaker_process and self.speaker_process.poll() is None:
                 self.speaker_process.terminate()
+                try:
+                    self.speaker_process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    self.speaker_process.kill()
                 print("Existing speaker process terminated.")
+                self.speaker_process = None
             self.speaker_process = subprocess.Popen(['aplay', f'./{selected_file}'])
             print("aplay launched.")
         except Exception as e:
@@ -170,18 +176,28 @@ class ButtonApp:
     def stop_speaker_clicked(self):
         if self.speaker_process and self.speaker_process.poll() is None:
             self.speaker_process.terminate()
+            try:
+                self.speaker_process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                self.speaker_process.kill()
             print("Speaker process terminated.")
             self.speaker_process = None
-            self.speaker_var.set('Select Frequency')  # Reset dropdown
+            self.speaker_var.set('Select Frequency')
         else:
             print("No speaker process is running.")
+            self.speaker_var.set('Select Frequency')
 
     def start_camera_clicked(self):
         print("Start button pressed! Starting camera...")
         try:
             if self.camera_process and self.camera_process.poll() is None:
                 self.camera_process.terminate()
+                try:
+                    self.camera_process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    self.camera_process.kill()
                 print("Existing camera process terminated.")
+                self.camera_process = None
             self.camera_process = subprocess.Popen(['python3', 'my_detection.py'])
             print("Camera started.")
         except Exception as e:
@@ -213,7 +229,12 @@ class ButtonApp:
         try:
             if self.camera_process and self.camera_process.poll() is None:
                 self.camera_process.terminate()
+                try:
+                    self.camera_process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    self.camera_process.kill()
                 print("Existing camera process terminated.")
+                self.camera_process = None
             self.camera_process = subprocess.Popen(['python3', 'testcamera.py'])
             print("testcamera.py launched.")
         except Exception as e:
@@ -222,6 +243,10 @@ class ButtonApp:
     def stop_camera_clicked(self):
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
+            try:
+                self.camera_process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                self.camera_process.kill()
             print("Camera process terminated.")
             self.camera_process = None
         else:
@@ -267,15 +292,24 @@ class ButtonApp:
     def stop_detection_clicked(self):
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
+            try:
+                self.camera_process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                self.camera_process.kill()
             print("Camera process terminated by Stop Detection.")
             self.camera_process = None
         if self.speaker_process and self.speaker_process.poll() is None:
             self.speaker_process.terminate()
+            try:
+                self.speaker_process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                self.speaker_process.kill()
             print("Speaker process terminated by Stop Detection.")
             self.speaker_process = None
-            self.speaker_var.set('Select Frequency')  # Reset the dropdown just like Stop Speaker Test
+            self.speaker_var.set('Select Frequency')
         else:
             print("No speaker process is running.")
+            self.speaker_var.set('Select Frequency')
         self.stop_distance_monitoring()
         print("All detection processes stopped.")
 
@@ -284,9 +318,17 @@ class ButtonApp:
         self.stop_distance_monitoring()
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
+            try:
+                self.camera_process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                self.camera_process.kill()
             print("Camera process terminated on exit.")
         if self.speaker_process and self.speaker_process.poll() is None:
             self.speaker_process.terminate()
+            try:
+                self.speaker_process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                self.speaker_process.kill()
             print("Speaker process terminated on exit.")
         GPIO.cleanup()
         self.master.destroy()
