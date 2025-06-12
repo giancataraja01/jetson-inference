@@ -1,249 +1,274 @@
 #!/usr/bin/env python3
-import cv2
-import requests
+
+import tkinter as tk
+from tkinter import font
+from tkinter import ttk  # For Combobox
+import subprocess
+import Jetson.GPIO as GPIO
 import time
-import threading
-import random
-import math
-import pygame  # For sound playback
 
-ROBOFLOW_API_KEY = "N34uDqAhCa3Xj2p4rHyd"
-ROBOFLOW_MODEL_URL = "https://detect.roboflow.com/villamor/8?api_key=" + ROBOFLOW_API_KEY
-USE_WEBCAM = True
-IMAGE_PATH = "test.jpg"
-FRAME_RESIZE = (416, 416)
-SEND_INTERVAL = 1.5  # seconds between API calls
+# --- Optional Firebase integration ---
+import firebase_admin
+from firebase_admin import credentials, db
 
-timer_start = None
-timer_duration = 10  # seconds
+# === CONFIGURATION ===
 
-# Shared state
-latest_detections = []
-latest_frame_shape = (0, 0, 0)
-lock = threading.Lock()
+FILE_PATH = 'detection_logs.txt'
+TRIG = 35  # Physical pin 35
+ECHO = 33  # Physical pin 33
 
-last_positions = {}
-last_frequencies = {}
-MOVE_THRESHOLD = 5  # pixels
+FIREBASE_CREDENTIAL_PATH = 'project8-b295f-firebase-adminsdk-fbsvc-619af81878.json'
+FIREBASE_DB_URL = 'https://project8-b295f-default-rtdb.asia-southeast1.firebasedatabase.app/'
 
-# Sound control globals
-sound_playing = False
-sound_lock = threading.Lock()
+# --- GPIO SETUP ---
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
 
-def play_sound():
-    global sound_playing
-    with sound_lock:
-        if not sound_playing:
-            pygame.mixer.music.load("15000.wav")
-            pygame.mixer.music.play(-1)  # Loop
-            sound_playing = True
+# --- Firebase Initialization (comment if not needed) ---
+cred = credentials.Certificate(FIREBASE_CREDENTIAL_PATH)
+firebase_admin.initialize_app(cred, {
+    'databaseURL': FIREBASE_DB_URL
+})
+distance_ref = db.reference('distance')
+player_ref = db.reference('player')
 
-def stop_sound():
-    global sound_playing
-    with sound_lock:
-        if sound_playing:
-            pygame.mixer.music.stop()
-            sound_playing = False
-
-def fetch_detections(frame):
-    global timer_start, latest_detections, latest_frame_shape
-
-    height, width, _ = frame.shape
-    resized = cv2.resize(frame, FRAME_RESIZE)
-    _, img_encoded = cv2.imencode('.jpg', resized)
-    img_bytes = img_encoded.tobytes()
-
+def read_trigger_file():
     try:
-        response = requests.post(
-            ROBOFLOW_MODEL_URL,
-            files={"file": ("image.jpg", img_bytes, "image/jpeg")},
-            timeout=5
+        with open(FILE_PATH, 'r') as file:
+            content = file.read().strip().lower()
+            return content == 'true'
+    except FileNotFoundError:
+        return False
+
+def measure_distance():
+    GPIO.output(TRIG, False)
+    time.sleep(0.1)
+
+    GPIO.output(TRIG, True)
+    time.sleep(0.00001)
+    GPIO.output(TRIG, False)
+
+    timeout_start = time.time() + 1
+    while GPIO.input(ECHO) == 0:
+        if time.time() > timeout_start:
+            print("Timeout: ECHO did not go high")
+            return None
+    pulse_start = time.time()
+
+    timeout_end = time.time() + 1
+    while GPIO.input(ECHO) == 1:
+        if time.time() > timeout_end:
+            print("Timeout: ECHO did not go low")
+            return None
+    pulse_end = time.time()
+
+    pulse_duration = pulse_end - pulse_start
+    distance_cm = round(pulse_duration * 17150, 2)
+    distance_m = round(distance_cm / 100, 3)
+
+    return distance_cm, distance_m
+
+class ButtonApp:
+    def __init__(self, master):
+        self.master = master
+        master.title("Dog Detection")
+        master.geometry("500x500")  # Slightly wider for dropdown
+
+        self.camera_process = None
+        self.speaker_process = None
+        self.distance_monitoring = False
+        self.distance_job = None
+
+        button_font = font.Font(family='Helvetica', size=12, weight='bold')
+
+        main_frame = tk.Frame(master, padx=15, pady=15)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_columnconfigure(1, weight=1)
+        main_frame.grid_columnconfigure(2, weight=1)
+        for i in range(6):
+            main_frame.grid_rowconfigure(i, weight=1)
+
+        # Start button now starts the camera!
+        btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.start_camera_clicked)
+        btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+        # --- Speaker Dropdown with "Select Frequency" default ---
+        self.speaker_files = [
+            'Select Frequency', 
+            '12000.wav', '15000.wav', '20000.wav', '40000.wav', '50000.wav', '60000.wav'
+        ]
+        self.speaker_var = tk.StringVar()
+        self.speaker_var.set('Select Frequency')
+        self.speaker_dropdown = ttk.Combobox(
+            main_frame, textvariable=self.speaker_var, values=self.speaker_files, font=button_font, state='readonly'
         )
+        self.speaker_dropdown.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_selected)
+        # Do NOT play anything at startup!
 
-        if response.status_code == 200:
-            data = response.json()
-            detections = data.get("predictions", [])
+        btn3 = tk.Button(main_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
+        btn3.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
-            with lock:
-                latest_detections = detections
-                latest_frame_shape = frame.shape
+        btn4 = tk.Button(main_frame, text="Test Camera", font=button_font, command=self.action4_clicked)
+        btn4.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
 
-            # Check detection classes
-            dog_wo_collar_detected = any(det['class'] == "dog_without_collar" for det in detections)
-            dog_w_collar_detected = any(det['class'] == "dog_with_collar" for det in detections)
+        btn_stop_camera = tk.Button(main_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
+        btn_stop_camera.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
-            # Write detection state to file
-            if dog_wo_collar_detected:
-                with open("detection_logs.txt", "w") as f:
-                    f.write("true\n")
-            elif dog_w_collar_detected:
-                with open("detection_logs.txt", "w") as f:
-                    f.write("false\n")
+        btn_stop_speaker = tk.Button(main_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
+        btn_stop_speaker.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
-            # Timer logic only for dog_without_collar
-            now = time.time()
-            if dog_wo_collar_detected:
-                if timer_start is None:
-                    timer_start = now
+        # --- Distance reading label ---
+        self.distance_var = tk.StringVar()
+        self.distance_var.set("Distance: N/A")
+        self.distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
+        self.distance_label.grid(row=4, column=0, columnspan=3, sticky="nsew", padx=5, pady=5)
+
+        # --- Start/Stop Dynamic Distance Monitoring ---
+        self.btn_start_monitor = tk.Button(
+            main_frame, text="Start Monitor", font=button_font,
+            command=self.start_distance_monitoring, bg="#34be13", fg="white"
+        )
+        self.btn_start_monitor.grid(row=5, column=0, sticky="nsew", padx=5, pady=5)
+
+        self.btn_stop_monitor = tk.Button(
+            main_frame, text="Stop Monitor", font=button_font,
+            command=self.stop_distance_monitoring, bg="#be1340", fg="white"
+        )
+        self.btn_stop_monitor.grid(row=5, column=1, sticky="nsew", padx=5, pady=5)
+
+        quit_button = tk.Button(master, text="Quit", command=self.close_window, bg="#c42b2b", fg="white")
+        quit_button.pack(pady=10)
+
+        master.protocol("WM_DELETE_WINDOW", self.close_window)
+
+    def on_speaker_selected(self, event):
+        selected_file = self.speaker_var.get()
+        if selected_file != 'Select Frequency':
+            self.play_speaker_selected(selected_file)
+
+    def play_speaker_selected(self, selected_file):
+        print(f"Playing sound: {selected_file}")
+        try:
+            if self.speaker_process and self.speaker_process.poll() is None:
+                self.speaker_process.terminate()
+                print("Existing speaker process terminated.")
+            self.speaker_process = subprocess.Popen(['aplay', f'./{selected_file}'])
+            print("aplay launched.")
+        except Exception as e:
+            print(f"Failed to launch aplay: {e}")
+
+    def stop_speaker_clicked(self):
+        if self.speaker_process and self.speaker_process.poll() is None:
+            self.speaker_process.terminate()
+            print("Speaker process terminated.")
+            self.speaker_process = None
+        else:
+            print("No speaker process is running.")
+
+    def start_camera_clicked(self):
+        print("Start button pressed! Starting camera...")
+        try:
+            if self.camera_process and self.camera_process.poll() is None:
+                self.camera_process.terminate()
+                print("Existing camera process terminated.")
+            self.camera_process = subprocess.Popen(['python3', 'my_detection.py'])
+            print("Camera started.")
+        except Exception as e:
+            print(f"Failed to start camera: {e}")
+
+    def action3_clicked(self):
+        print("Button 'Test Distance' was clicked!")
+        try:
+            result = measure_distance()
+            if result is not None:
+                distance_cm, distance_m = result
+                self.distance_var.set(f"Distance: {distance_cm} cm ({distance_m} m)")
+                print(f"Distance reading: {distance_cm} cm ({distance_m} m)")
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                distance_ref.set({
+                    'cm': distance_cm,
+                    'm': distance_m,
+                    'timestamp': timestamp
+                })
             else:
-                timer_start = None
+                self.distance_var.set("Distance: Error")
+                print("Error measuring distance")
+        except Exception as e:
+            self.distance_var.set("Distance: Error")
+            print(f"Exception measuring distance: {e}")
 
+    def action4_clicked(self):
+        print("Button 'Test Camera' was clicked!")
+        try:
+            if self.camera_process and self.camera_process.poll() is None:
+                self.camera_process.terminate()
+                print("Existing camera process terminated.")
+            self.camera_process = subprocess.Popen(['python3', 'testcamera.py'])
+            print("testcamera.py launched.")
+        except Exception as e:
+            print(f"Failed to launch testcamera.py: {e}")
+
+    def stop_camera_clicked(self):
+        if self.camera_process and self.camera_process.poll() is None:
+            self.camera_process.terminate()
+            print("Camera process terminated.")
+            self.camera_process = None
         else:
-            print("❌ Roboflow Error:", response.status_code, response.text)
+            print("No camera process is running.")
 
-    except Exception as e:
-        print("❌ Request failed:", e)
+    def start_distance_monitoring(self):
+        if not self.distance_monitoring:
+            self.distance_monitoring = True
+            self.update_distance()
+            print("Distance monitoring started.")
 
-def object_moved(last_pos, current_pos):
-    dx = last_pos[0] - current_pos[0]
-    dy = last_pos[1] - current_pos[1]
-    dist = math.sqrt(dx*dx + dy*dy)
-    return dist > MOVE_THRESHOLD
+    def stop_distance_monitoring(self):
+        self.distance_monitoring = False
+        if self.distance_job is not None:
+            self.master.after_cancel(self.distance_job)
+            self.distance_job = None
+        print("Distance monitoring stopped.")
 
-def draw_detections(frame):
-    global timer_start, last_positions, last_frequencies
-
-    height, width, _ = frame.shape
-
-    with lock:
-        detections = latest_detections.copy()
-        shape = latest_frame_shape
-
-    scale_x = width / FRAME_RESIZE[0]
-    scale_y = height / FRAME_RESIZE[1]
-
-    now = time.time()
-
-    # Determine which class to draw
-    draw_class = "dog_without_collar" if any(det['class'] == "dog_without_collar" for det in detections) else "dog_with_collar"
-
-    for det in detections:
-        class_name = det['class']
-        if class_name != draw_class:
-            continue
-
-        x = det['x'] * scale_x
-        y = det['y'] * scale_y
-        w = det['width'] * scale_x * 1.2
-        h = det['height'] * scale_y * 1.2
-
-        x1 = int(x - w / 2)
-        y1 = int(y - h / 2)
-        x2 = int(x + w / 2)
-        y2 = int(y + h / 2)
-
-        color = (0, 255, 0) if class_name == "dog_without_collar" else (255, 0, 0)
-        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-
-        label = f"{class_name} ({det['confidence']:.2f})"
-        cv2.putText(frame, label, (x1, y1 - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-
-        obj_id = f"{class_name}_{int(x)}_{int(y)}"
-        last_pos = last_positions.get(obj_id)
-        current_pos = (x, y)
-
-        if last_pos is None or object_moved(last_pos, current_pos):
-            freq_value = random.randint(40, 60)
-            last_frequencies[obj_id] = freq_value
-            last_positions[obj_id] = current_pos
+    def update_distance(self):
+        if self.distance_monitoring:
+            try:
+                result = measure_distance()
+                if result is not None:
+                    distance_cm, distance_m = result
+                    self.distance_var.set(f"Distance: {distance_cm} cm ({distance_m} m)")
+                    print(f"[Live] Distance: {distance_cm} cm ({distance_m} m)")
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    distance_ref.set({
+                        'cm': distance_cm,
+                        'm': distance_m,
+                        'timestamp': timestamp
+                    })
+                else:
+                    self.distance_var.set("Distance: Error")
+            except Exception as e:
+                self.distance_var.set("Distance: Error")
+                print(f"Exception in live distance: {e}")
+            self.distance_job = self.master.after(500, self.update_distance)
         else:
-            freq_value = last_frequencies.get(obj_id, random.randint(40, 60))
+            self.distance_var.set("Distance: N/A")
 
-        freq_text = f"FREQUENCY {freq_value}kHz"
-        freq_y = y1 + 20
-        cv2.putText(frame, freq_text, (x1 + 5, freq_y),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
-
-        if class_name == "dog_without_collar" and timer_start is not None:
-            elapsed = now - timer_start
-            remaining = max(0, int(timer_duration - elapsed))
-            timer_text = f"Timer: {remaining}s"
-            timer_y = freq_y + 25
-            cv2.putText(frame, timer_text, (x1 + 5, timer_y),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
-
-def gstreamer_pipeline(
-    capture_width=640,
-    capture_height=480,
-    display_width=640,
-    display_height=480,
-    framerate=30,
-    flip_method=0
-):
-    return (
-        f"v4l2src device=/dev/video0 ! "
-        f"video/x-raw, width={capture_width}, height={capture_height}, framerate={framerate}/1 ! "
-        f"videoconvert ! "
-        f"videoscale ! "
-        f"video/x-raw, width={display_width}, height={display_height} ! "
-        f"appsink"
-    )
-
-def main():
-    global sound_playing
-    if USE_WEBCAM:
-        cap = cv2.VideoCapture(gstreamer_pipeline(), cv2.CAP_GSTREAMER)
-        if not cap.isOpened():
-            print("❌ Could not open USB camera")
-            return
-    else:
-        frame = cv2.imread(IMAGE_PATH)
-        if frame is None:
-            print("❌ Could not load image:", IMAGE_PATH)
-            return
-
-    print("✅ Roboflow Detection Running. Press 'q' to quit.")
-
-    pygame.mixer.init()  # Initialize sound
-
-    last_sent_time = 0
-    send_thread = None
-
-    while True:
-        if USE_WEBCAM:
-            ret, frame = cap.read()
-            if not ret:
-                print("⚠️ Frame capture failed")
-                break
-        else:
-            frame = frame.copy()
-
-        now = time.time()
-
-        if now - last_sent_time >= SEND_INTERVAL and (send_thread is None or not send_thread.is_alive()):
-            frame_for_sending = frame.copy()
-            send_thread = threading.Thread(target=fetch_detections, args=(frame_for_sending,))
-            send_thread.start()
-            last_sent_time = now
-
-        draw_detections(frame)
-
-        # --- SOUND CONTROL LOGIC ---
-        with lock:
-            dets = latest_detections.copy()
-        dog_wo_collar = any(det['class'] == "dog_without_collar" for det in dets)
-        dog_w_collar = any(det['class'] == "dog_with_collar" for det in dets)
-
-        if dog_wo_collar and not dog_w_collar:
-            play_sound()
-        else:
-            stop_sound()
-        # --- END SOUND CONTROL LOGIC ---
-
-        cv2.imshow("Roboflow Detection", frame)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-        if not USE_WEBCAM:
-            cv2.waitKey(0)
-            break
-
-    if USE_WEBCAM:
-        cap.release()
-    cv2.destroyAllWindows()
-    stop_sound()  # Ensure sound is stopped when quitting
+    def close_window(self):
+        print("Closing the application...")
+        self.stop_distance_monitoring()
+        if self.camera_process and self.camera_process.poll() is None:
+            self.camera_process.terminate()
+            print("Camera process terminated on exit.")
+        if self.speaker_process and self.speaker_process.poll() is None:
+            self.speaker_process.terminate()
+            print("Speaker process terminated on exit.")
+        GPIO.cleanup()
+        self.master.destroy()
 
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    app = ButtonApp(root)
+    root.mainloop()
