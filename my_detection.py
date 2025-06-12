@@ -29,7 +29,6 @@ latest_frame_shape = (0, 0, 0)
 lock = threading.Lock()
 
 last_positions = {}
-last_frequencies = {}
 MOVE_THRESHOLD = 5  # pixels
 
 def fetch_detections(frame):
@@ -88,7 +87,7 @@ def object_moved(last_pos, current_pos):
     return dist > MOVE_THRESHOLD
 
 def draw_detections(frame):
-    global timer_start, last_positions, last_frequencies
+    global timer_start, last_positions
 
     height, width, _ = frame.shape
 
@@ -131,22 +130,14 @@ def draw_detections(frame):
         current_pos = (x, y)
 
         if last_pos is None or object_moved(last_pos, current_pos):
-            freq_value = random.randint(40, 60)
-            last_frequencies[obj_id] = freq_value
             last_positions[obj_id] = current_pos
-        else:
-            freq_value = last_frequencies.get(obj_id, random.randint(40, 60))
 
-        freq_text = f"FREQUENCY {freq_value}kHz"
-        freq_y = y1 + 20
-        cv2.putText(frame, freq_text, (x1 + 5, freq_y),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
-
+        # Timer logic for dog_without_collar
         if class_name == "dog_without_collar" and timer_start is not None:
             elapsed = now - timer_start
             remaining = max(0, int(timer_duration - elapsed))
             timer_text = f"Timer: {remaining}s"
-            timer_y = freq_y + 25
+            timer_y = y1 + 25  # Fixed offset from top of box
             cv2.putText(frame, timer_text, (x1 + 5, timer_y),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
 
