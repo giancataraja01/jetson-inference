@@ -2,6 +2,7 @@
 
 import tkinter as tk
 from tkinter import font
+from tkinter import ttk  # For Combobox
 import subprocess
 import Jetson.GPIO as GPIO
 import time
@@ -72,7 +73,7 @@ class ButtonApp:
     def __init__(self, master):
         self.master = master
         master.title("Dog Detection")
-        master.geometry("400x500")  # Slightly larger for new buttons
+        master.geometry("500x500")  # Slightly wider for dropdown
 
         self.camera_process = None
         self.speaker_process = None
@@ -86,15 +87,25 @@ class ButtonApp:
 
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
-        for i in range(6):  # Add more rows for new controls
+        main_frame.grid_columnconfigure(2, weight=1)
+        for i in range(6):
             main_frame.grid_rowconfigure(i, weight=1)
 
         # Start button now starts the camera!
         btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.start_camera_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        btn2 = tk.Button(main_frame, text="Test Speaker", font=button_font, command=self.action2_clicked)
-        btn2.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        # --- Speaker Dropdown (auto-play on selection) ---
+        self.speaker_files = ['12000.wav', '15000.wav', '20000.wav', '40000.wav', '50000.wav', '60000.wav']
+        self.speaker_var = tk.StringVar()
+        self.speaker_var.set(self.speaker_files[0])
+        self.speaker_dropdown = ttk.Combobox(
+            main_frame, textvariable=self.speaker_var, values=self.speaker_files, font=button_font, state='readonly'
+        )
+        self.speaker_dropdown.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_selected)
+        # Optionally, play the default selection at startup
+        self.play_speaker_selected(self.speaker_files[0])
 
         btn3 = tk.Button(main_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
         btn3.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
@@ -112,7 +123,7 @@ class ButtonApp:
         self.distance_var = tk.StringVar()
         self.distance_var.set("Distance: N/A")
         self.distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
-        self.distance_label.grid(row=4, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+        self.distance_label.grid(row=4, column=0, columnspan=3, sticky="nsew", padx=5, pady=5)
 
         # --- Start/Stop Dynamic Distance Monitoring ---
         self.btn_start_monitor = tk.Button(
@@ -132,24 +143,17 @@ class ButtonApp:
 
         master.protocol("WM_DELETE_WINDOW", self.close_window)
 
-    def start_camera_clicked(self):
-        print("Start button pressed! Starting camera...")
-        try:
-            if self.camera_process and self.camera_process.poll() is None:
-                self.camera_process.terminate()
-                print("Existing camera process terminated.")
-            self.camera_process = subprocess.Popen(['python3', 'my_detection.py'])
-            print("Camera started.")
-        except Exception as e:
-            print(f"Failed to start camera: {e}")
+    def on_speaker_selected(self, event):
+        selected_file = self.speaker_var.get()
+        self.play_speaker_selected(selected_file)
 
-    def action2_clicked(self):
-        print("Button 'Test Speaker' was clicked!")
+    def play_speaker_selected(self, selected_file):
+        print(f"Playing sound: {selected_file}")
         try:
             if self.speaker_process and self.speaker_process.poll() is None:
                 self.speaker_process.terminate()
                 print("Existing speaker process terminated.")
-            self.speaker_process = subprocess.Popen(['aplay', './12000.wav'])
+            self.speaker_process = subprocess.Popen(['aplay', f'./{selected_file}'])
             print("aplay launched.")
         except Exception as e:
             print(f"Failed to launch aplay: {e}")
@@ -162,16 +166,25 @@ class ButtonApp:
         else:
             print("No speaker process is running.")
 
+    def start_camera_clicked(self):
+        print("Start button pressed! Starting camera...")
+        try:
+            if self.camera_process and self.camera_process.poll() is None:
+                self.camera_process.terminate()
+                print("Existing camera process terminated.")
+            self.camera_process = subprocess.Popen(['python3', 'my_detection.py'])
+            print("Camera started.")
+        except Exception as e:
+            print(f"Failed to start camera: {e}")
+
     def action3_clicked(self):
         print("Button 'Test Distance' was clicked!")
         try:
-            # Directly measure distance instead of launching subprocess
             result = measure_distance()
             if result is not None:
                 distance_cm, distance_m = result
                 self.distance_var.set(f"Distance: {distance_cm} cm ({distance_m} m)")
                 print(f"Distance reading: {distance_cm} cm ({distance_m} m)")
-                # --- Optionally update Firebase ---
                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                 distance_ref.set({
                     'cm': distance_cm,
@@ -204,7 +217,6 @@ class ButtonApp:
         else:
             print("No camera process is running.")
 
-    # --- Dynamic distance monitoring ---
     def start_distance_monitoring(self):
         if not self.distance_monitoring:
             self.distance_monitoring = True
@@ -226,7 +238,6 @@ class ButtonApp:
                     distance_cm, distance_m = result
                     self.distance_var.set(f"Distance: {distance_cm} cm ({distance_m} m)")
                     print(f"[Live] Distance: {distance_cm} cm ({distance_m} m)")
-                    # Optionally update Firebase
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     distance_ref.set({
                         'cm': distance_cm,
@@ -238,7 +249,6 @@ class ButtonApp:
             except Exception as e:
                 self.distance_var.set("Distance: Error")
                 print(f"Exception in live distance: {e}")
-            # Schedule next update in 500 ms
             self.distance_job = self.master.after(500, self.update_distance)
         else:
             self.distance_var.set("Distance: N/A")
