@@ -207,10 +207,10 @@ class ButtonApp:
             if self.camera_process and self.camera_process.poll() is None:
                 self.camera_process.terminate()
                 print("Existing camera process terminated.")
-            self.camera_process = subprocess.Popen(['python3', 'my_detection.py'])
-            print("my_detection.py launched.")
+            self.camera_process = subprocess.Popen(['python3', 'testcamera.py'])
+            print("testcamera.py launched.")
         except Exception as e:
-            print(f"Failed to launch my_detection.py: {e}")
+            print(f"Failed to launch testcamera.py: {e}")
 
     def stop_camera_clicked(self):
         if self.camera_process and self.camera_process.poll() is None:
