@@ -5,6 +5,15 @@ import time
 import threading
 import random
 import math
+import RPi.GPIO as GPIO  # Add this for HC-SR04
+
+# --- HC-SR04 SETUP ---
+TRIG = 23  # Set to your actual GPIO pin numbers
+ECHO = 24
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
+# ----------------------
 
 ROBOFLOW_API_KEY = "N34uDqAhCa3Xj2p4rHyd"
 ROBOFLOW_MODEL_URL = "https://detect.roboflow.com/villamor/8?api_key=" + ROBOFLOW_API_KEY
@@ -24,6 +33,35 @@ lock = threading.Lock()
 last_positions = {}
 last_frequencies = {}
 MOVE_THRESHOLD = 5  # pixels
+
+def get_distance():
+    GPIO.output(TRIG, False)
+    time.sleep(0.05)
+
+    GPIO.output(TRIG, True)
+    time.sleep(0.00001)
+    GPIO.output(TRIG, False)
+
+    pulse_start = time.time()
+    timeout = pulse_start + 0.04
+    # Wait for echo to go high
+    while GPIO.input(ECHO) == 0:
+        pulse_start = time.time()
+        if pulse_start > timeout:
+            return -1
+
+    pulse_end = time.time()
+    timeout = pulse_end + 0.04
+    # Wait for echo to go low
+    while GPIO.input(ECHO) == 1:
+        pulse_end = time.time()
+        if pulse_end > timeout:
+            return -1
+
+    pulse_duration = pulse_end - pulse_start
+    distance = pulse_duration * 17150  # cm
+    distance = round(distance, 2)
+    return distance
 
 def fetch_detections(frame):
     global timer_start, latest_detections, latest_frame_shape
@@ -165,11 +203,13 @@ def main():
         cap = cv2.VideoCapture(gstreamer_pipeline(), cv2.CAP_GSTREAMER)
         if not cap.isOpened():
             print("❌ Could not open USB camera")
+            GPIO.cleanup()
             return
     else:
         frame = cv2.imread(IMAGE_PATH)
         if frame is None:
             print("❌ Could not load image:", IMAGE_PATH)
+            GPIO.cleanup()
             return
 
     print("✅ Roboflow Detection Running. Press 'q' to quit.")
@@ -187,6 +227,19 @@ def main():
             frame = frame.copy()
 
         now = time.time()
+
+        # --- Read and display HC-SR04 distance ---
+        try:
+            distance = get_distance()
+            if distance != -1:
+                cv2.putText(frame, f"Distance: {distance} cm", (20, 40),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+            else:
+                cv2.putText(frame, "Distance: -- cm", (20, 40),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        except Exception as e:
+            print(f"Error reading distance: {e}")
+        # ----------------------------------------
 
         if now - last_sent_time >= SEND_INTERVAL and (send_thread is None or not send_thread.is_alive()):
             frame_for_sending = frame.copy()
@@ -207,6 +260,7 @@ def main():
 
     if USE_WEBCAM:
         cap.release()
+    GPIO.cleanup()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
