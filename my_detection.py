@@ -132,14 +132,7 @@ def draw_detections(frame):
         if last_pos is None or object_moved(last_pos, current_pos):
             last_positions[obj_id] = current_pos
 
-        # Timer logic for dog_without_collar
-        if class_name == "dog_without_collar" and timer_start is not None:
-            elapsed = now - timer_start
-            remaining = max(0, int(timer_duration - elapsed))
-            timer_text = f"Timer: {remaining}s"
-            timer_y = y1 + 25  # Fixed offset from top of box
-            cv2.putText(frame, timer_text, (x1 + 5, timer_y),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
+        # Frequency and timer/counter display removed
 
 def gstreamer_pipeline(
     capture_width=640,
