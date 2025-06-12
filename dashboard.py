@@ -5,6 +5,8 @@ import time
 import threading
 import math
 import subprocess
+import tkinter as tk
+from tkinter import ttk
 
 sound_process = None
 
@@ -25,9 +27,40 @@ lock = threading.Lock()
 last_positions = {}
 MOVE_THRESHOLD = 5  # pixels
 
+# Frequency selection
+selected_freq = 20000  # default value
+
+def select_frequency():
+    global selected_freq
+    root = tk.Tk()
+    root.title("Select Frequency")
+
+    freq_var = tk.IntVar(value=20000)  # default
+
+    options = [
+        (12000, "12kHz"),
+        (15000, "15kHz"),
+        (20000, "20kHz"),
+        (40000, "40kHz"),
+        (50000, "50kHz"),
+        (60000, "60kHz"),
+    ]
+
+    ttk.Label(root, text="Choose frequency:").pack(anchor='w')
+
+    for val, label in options:
+        ttk.Radiobutton(root, text=label, variable=freq_var, value=val).pack(anchor='w')
+
+    def on_ok():
+        global selected_freq
+        selected_freq = freq_var.get()
+        root.destroy()
+
+    ttk.Button(root, text="OK", command=on_ok).pack()
+    root.mainloop()
+
 def fetch_detections(frame):
     global timer_start, latest_detections, latest_frame_shape, sound_process
-
     height, width, _ = frame.shape
     resized = cv2.resize(frame, FRAME_RESIZE)
     _, img_encoded = cv2.imencode('.jpg', resized)
@@ -62,7 +95,7 @@ def fetch_detections(frame):
                     # Play sound if not already playing
                     if sound_process is None or sound_process.poll() is not None:
                         try:
-                            sound_process = subprocess.Popen(['aplay', './12000.wav'])
+                            sound_process = subprocess.Popen(['aplay', f'./{selected_freq}.wav'])
                         except Exception as e:
                             print(f"Could not play sound: {e}")
                 else:
@@ -234,4 +267,5 @@ def main():
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
+    select_frequency()
     main()
