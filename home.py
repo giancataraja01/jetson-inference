@@ -6,6 +6,7 @@ from tkinter import ttk
 import subprocess
 import Jetson.GPIO as GPIO
 import time
+import os
 
 # --- Optional Firebase integration ---
 import firebase_admin
@@ -68,6 +69,13 @@ def measure_distance():
     distance_m = round(distance_cm / 100, 3)
 
     return distance_cm, distance_m
+
+def kill_all_aplay():
+    try:
+        os.system("pkill -9 aplay")
+        print("All aplay processes killed.")
+    except Exception as e:
+        print(f"Error killing aplay processes: {e}")
 
 class ButtonApp:
     def __init__(self, master):
@@ -160,32 +168,17 @@ class ButtonApp:
         print(f"Playing sound: {selected_file}")
         try:
             # Stop any existing speaker process
-            if self.speaker_process and self.speaker_process.poll() is None:
-                self.speaker_process.terminate()
-                try:
-                    self.speaker_process.wait(timeout=1)
-                except subprocess.TimeoutExpired:
-                    self.speaker_process.kill()
-                print("Existing speaker process terminated.")
-                self.speaker_process = None
+            kill_all_aplay()
             self.speaker_process = subprocess.Popen(['aplay', f'./{selected_file}'])
             print("aplay launched.")
         except Exception as e:
             print(f"Failed to launch aplay: {e}")
 
     def stop_speaker_clicked(self):
-        if self.speaker_process and self.speaker_process.poll() is None:
-            self.speaker_process.terminate()
-            try:
-                self.speaker_process.wait(timeout=1)
-            except subprocess.TimeoutExpired:
-                self.speaker_process.kill()
-            print("Speaker process terminated.")
-            self.speaker_process = None
-            self.speaker_var.set('Select Frequency')
-        else:
-            print("No speaker process is running.")
-            self.speaker_var.set('Select Frequency')
+        kill_all_aplay()
+        self.speaker_process = None
+        self.speaker_var.set('Select Frequency')
+        print("All aplay processes killed (Stop Speaker Test).")
 
     def start_camera_clicked(self):
         print("Start button pressed! Starting camera...")
@@ -288,8 +281,8 @@ class ButtonApp:
         else:
             self.distance_var.set("Distance: N/A")
 
-    # Stop Detection: stops camera, audio (like Stop Speaker Test), and distance monitoring
     def stop_detection_clicked(self):
+        # Stop camera process
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
             try:
@@ -298,18 +291,13 @@ class ButtonApp:
                 self.camera_process.kill()
             print("Camera process terminated by Stop Detection.")
             self.camera_process = None
-        if self.speaker_process and self.speaker_process.poll() is None:
-            self.speaker_process.terminate()
-            try:
-                self.speaker_process.wait(timeout=1)
-            except subprocess.TimeoutExpired:
-                self.speaker_process.kill()
-            print("Speaker process terminated by Stop Detection.")
-            self.speaker_process = None
-            self.speaker_var.set('Select Frequency')
-        else:
-            print("No speaker process is running.")
-            self.speaker_var.set('Select Frequency')
+
+        # Stop speaker process (audio)
+        kill_all_aplay()
+        self.speaker_process = None
+        self.speaker_var.set('Select Frequency')
+        print("All aplay processes killed (Stop Detection).")
+
         self.stop_distance_monitoring()
         print("All detection processes stopped.")
 
@@ -323,13 +311,9 @@ class ButtonApp:
             except subprocess.TimeoutExpired:
                 self.camera_process.kill()
             print("Camera process terminated on exit.")
-        if self.speaker_process and self.speaker_process.poll() is None:
-            self.speaker_process.terminate()
-            try:
-                self.speaker_process.wait(timeout=1)
-            except subprocess.TimeoutExpired:
-                self.speaker_process.kill()
-            print("Speaker process terminated on exit.")
+        kill_all_aplay()
+        self.speaker_process = None
+        print("All aplay processes killed on exit.")
         GPIO.cleanup()
         self.master.destroy()
 
