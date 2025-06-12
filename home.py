@@ -2,9 +2,11 @@
 
 import tkinter as tk
 from tkinter import font
+from tkinter import PhotoImage
 import subprocess
 import Jetson.GPIO as GPIO
 import time
+import os
 
 # --- Optional Firebase integration ---
 import firebase_admin
@@ -72,8 +74,7 @@ class ButtonApp:
     def __init__(self, master):
         self.master = master
         master.title("Dog Detection")
-        master.geometry("400x500")  # Slightly larger for new buttons
-
+        master.geometry("430x530")
         self.camera_process = None
         self.speaker_process = None
         self.distance_monitoring = False
@@ -81,55 +82,71 @@ class ButtonApp:
 
         button_font = font.Font(family='Helvetica', size=12, weight='bold')
 
+        # Load icons if available
+        self.icon_play = self.load_icon('play.png')
+        self.icon_stop = self.load_icon('stop.png')
+        self.icon_speaker = self.load_icon('speaker.png')
+        self.icon_camera = self.load_icon('camera.png')
+        self.icon_distance = self.load_icon('distance.png')
+        self.icon_monitor = self.load_icon('monitor.png')
+
         main_frame = tk.Frame(master, padx=15, pady=15)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        main_frame.grid_columnconfigure(0, weight=1)
-        main_frame.grid_columnconfigure(1, weight=1)
-        for i in range(6):  # Add more rows for new controls
-            main_frame.grid_rowconfigure(i, weight=1)
+        # --- Row 1: Start and Stop (main) ---
+        main_row = tk.Frame(main_frame)
+        main_row.pack(fill=tk.X, pady=5)
+        self.btn_start = tk.Button(main_row, text="Start", font=button_font, command=self.action1_clicked, image=self.icon_play, compound='left', width=130)
+        self.btn_start.pack(side=tk.LEFT, padx=(0,8))
+        self.btn_stop = tk.Button(main_row, text="Stop", font=button_font, command=self.close_window, image=self.icon_stop, compound='left', bg="#c42b2b", fg="white", width=130)
+        self.btn_stop.pack(side=tk.LEFT)
 
-        btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.action1_clicked)
-        btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        # --- Row 2: Speaker Test/Stop ---
+        speaker_row = tk.Frame(main_frame)
+        speaker_row.pack(fill=tk.X, pady=5)
+        self.btn_speaker = tk.Button(speaker_row, text="Test Speaker", font=button_font, command=self.action2_clicked, image=self.icon_speaker, compound='left', width=130)
+        self.btn_speaker.pack(side=tk.LEFT, padx=(0,8))
+        self.btn_speaker_stop = tk.Button(speaker_row, text="Stop Speaker", font=button_font, command=self.stop_speaker_clicked, image=self.icon_stop, compound='left', bg="#1c8be0", fg="white", width=130)
+        self.btn_speaker_stop.pack(side=tk.LEFT)
 
-        btn2 = tk.Button(main_frame, text="Test Speaker", font=button_font, command=self.action2_clicked)
-        btn2.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        # --- Row 3: Camera Test/Stop ---
+        camera_row = tk.Frame(main_frame)
+        camera_row.pack(fill=tk.X, pady=5)
+        self.btn_camera = tk.Button(camera_row, text="Test Camera", font=button_font, command=self.action4_clicked, image=self.icon_camera, compound='left', width=130)
+        self.btn_camera.pack(side=tk.LEFT, padx=(0,8))
+        self.btn_camera_stop = tk.Button(camera_row, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, image=self.icon_stop, compound='left', bg="#e08b1c", fg="white", width=130)
+        self.btn_camera_stop.pack(side=tk.LEFT)
 
-        btn3 = tk.Button(main_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
-        btn3.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+        # --- Row 4: Distance Test/Monitor ---
+        distance_row = tk.Frame(main_frame)
+        distance_row.pack(fill=tk.X, pady=5)
+        self.btn_distance = tk.Button(distance_row, text="Test Distance", font=button_font, command=self.action3_clicked, image=self.icon_distance, compound='left', width=120)
+        self.btn_distance.pack(side=tk.LEFT, padx=(0,8))
+        self.btn_start_monitor = tk.Button(distance_row, text="Start Monitor", font=button_font, command=self.start_distance_monitoring, image=self.icon_monitor, compound='left', bg="#34be13", fg="white", width=120)
+        self.btn_start_monitor.pack(side=tk.LEFT, padx=(0,8))
+        self.btn_stop_monitor = tk.Button(distance_row, text="Stop Monitor", font=button_font, command=self.stop_distance_monitoring, image=self.icon_stop, compound='left', bg="#be1340", fg="white", width=120)
+        self.btn_stop_monitor.pack(side=tk.LEFT)
 
-        btn4 = tk.Button(main_frame, text="Test Camera", font=button_font, command=self.action4_clicked)
-        btn4.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
-
-        btn_stop_camera = tk.Button(main_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
-        btn_stop_camera.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
-
-        btn_stop_speaker = tk.Button(main_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
-        btn_stop_speaker.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
-
-        # --- Distance reading label ---
+        # --- Distance display ---
         self.distance_var = tk.StringVar()
         self.distance_var.set("Distance: N/A")
         self.distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
-        self.distance_label.grid(row=4, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+        self.distance_label.pack(fill=tk.X, pady=(20,5))
 
-        # --- Start/Stop Dynamic Distance Monitoring ---
-        self.btn_start_monitor = tk.Button(
-            main_frame, text="Start Monitor", font=button_font,
-            command=self.start_distance_monitoring, bg="#34be13", fg="white"
-        )
-        self.btn_start_monitor.grid(row=5, column=0, sticky="nsew", padx=5, pady=5)
-
-        self.btn_stop_monitor = tk.Button(
-            main_frame, text="Stop Monitor", font=button_font,
-            command=self.stop_distance_monitoring, bg="#be1340", fg="white"
-        )
-        self.btn_stop_monitor.grid(row=5, column=1, sticky="nsew", padx=5, pady=5)
-
+        # Quit button at the bottom
         quit_button = tk.Button(master, text="Quit", command=self.close_window, bg="#c42b2b", fg="white")
         quit_button.pack(pady=10)
 
         master.protocol("WM_DELETE_WINDOW", self.close_window)
+
+    def load_icon(self, filename):
+        if os.path.exists(filename):
+            try:
+                return PhotoImage(file=filename)
+            except Exception:
+                return None
+        else:
+            return None
 
     def action1_clicked(self):
         print("Button 'Action 1' was clicked!")
@@ -156,13 +173,11 @@ class ButtonApp:
     def action3_clicked(self):
         print("Button 'Test Distance' was clicked!")
         try:
-            # Directly measure distance instead of launching subprocess
             result = measure_distance()
             if result is not None:
                 distance_cm, distance_m = result
                 self.distance_var.set(f"Distance: {distance_cm} cm ({distance_m} m)")
                 print(f"Distance reading: {distance_cm} cm ({distance_m} m)")
-                # --- Optionally update Firebase ---
                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                 distance_ref.set({
                     'cm': distance_cm,
@@ -217,7 +232,6 @@ class ButtonApp:
                     distance_cm, distance_m = result
                     self.distance_var.set(f"Distance: {distance_cm} cm ({distance_m} m)")
                     print(f"[Live] Distance: {distance_cm} cm ({distance_m} m)")
-                    # Optionally update Firebase
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     distance_ref.set({
                         'cm': distance_cm,
@@ -229,7 +243,6 @@ class ButtonApp:
             except Exception as e:
                 self.distance_var.set("Distance: Error")
                 print(f"Exception in live distance: {e}")
-            # Schedule next update in 500 ms
             self.distance_job = self.master.after(500, self.update_distance)
         else:
             self.distance_var.set("Distance: N/A")
