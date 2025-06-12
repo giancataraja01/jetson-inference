@@ -116,7 +116,7 @@ class ButtonApp:
         self.speaker_dropdown.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_selected)
 
-        # Stop Detection button (new)
+        # Stop Detection button
         btn_stop_detection = tk.Button(
             main_frame, text="Stop Detection", font=button_font,
             command=self.stop_detection_clicked, bg="#be1313", fg="white"
@@ -193,6 +193,7 @@ class ButtonApp:
                 self.camera_process = None
             self.camera_process = subprocess.Popen(['python3', 'my_detection.py'])
             print("Camera started.")
+            self.start_distance_monitoring()  # <-- Start Distance Monitoring automatically!
         except Exception as e:
             print(f"Failed to start camera: {e}")
 
