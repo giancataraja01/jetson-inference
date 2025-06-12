@@ -35,7 +35,7 @@ class ButtonApp:
         btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.action1_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Button 2
+        # Button 2 - Test Speaker
         btn2 = tk.Button(main_frame, text="Test Speaker", font=button_font, command=self.action2_clicked)
         btn2.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
@@ -63,8 +63,13 @@ class ButtonApp:
         print("Button 'Action 1' was clicked!")
 
     def action2_clicked(self):
-        """Placeholder function for Button 2."""
-        print("Button 'Action 2' was clicked!")
+        """Executes playwav.py when 'Test Speaker' is clicked."""
+        print("Button 'Test Speaker' was clicked!")
+        try:
+            subprocess.Popen(['python3', 'playwav.py'])
+            print("playwav.py launched.")
+        except Exception as e:
+            print(f"Failed to launch playwav.py: {e}")
 
     def action3_clicked(self):
         """Placeholder function for Button 3."""
