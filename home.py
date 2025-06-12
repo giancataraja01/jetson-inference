@@ -69,17 +69,17 @@ class ButtonApp:
         print("Button 'Action 1' was clicked!")
 
     def action2_clicked(self):
-        """Executes playwav.py when 'Test Speaker' is clicked."""
+        """Plays the WAV file using aplay when 'Test Speaker' is clicked."""
         print("Button 'Test Speaker' was clicked!")
         try:
             # If a speaker process is already running, terminate it first
             if self.speaker_process and self.speaker_process.poll() is None:
                 self.speaker_process.terminate()
                 print("Existing speaker process terminated.")
-            self.speaker_process = subprocess.Popen(['python3', 'playwav.py'])
-            print("playwav.py launched.")
+            self.speaker_process = subprocess.Popen(['aplay', './12000.wav'])
+            print("aplay launched.")
         except Exception as e:
-            print(f"Failed to launch playwav.py: {e}")
+            print(f"Failed to launch aplay: {e}")
 
     def stop_speaker_clicked(self):
         """Stops the speaker process if running."""
