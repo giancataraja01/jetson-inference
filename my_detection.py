@@ -3,11 +3,9 @@ import cv2
 import requests
 import time
 import threading
-import random
 import math
 import subprocess
 
-# Global handle to the sound process
 sound_process = None
 
 ROBOFLOW_API_KEY = "KufuKK4oeLFhc2LYQwKl"
@@ -24,7 +22,6 @@ timer_duration = 10  # seconds
 latest_detections = []
 latest_frame_shape = (0, 0, 0)
 lock = threading.Lock()
-
 last_positions = {}
 MOVE_THRESHOLD = 5  # pixels
 
@@ -51,20 +48,34 @@ def fetch_detections(frame):
                 latest_detections = detections
                 latest_frame_shape = frame.shape
 
-            # Detection logic
             dog_wo_collar_detected = any(det['class'] == "dog_without_collar" for det in detections)
             dog_w_collar_detected = any(det['class'] == "dog_with_collar" for det in detections)
 
-            # Play/stop audio logic
+            now = time.time()
+
+            # Logic for timer and sound
             if dog_wo_collar_detected and not dog_w_collar_detected:
-                # Play sound if not already playing
-                if sound_process is None or sound_process.poll() is not None:
-                    try:
-                        sound_process = subprocess.Popen(['aplay', './12000.wav'])
-                    except Exception as e:
-                        print(f"Could not play sound: {e}")
+                if timer_start is None:
+                    timer_start = now  # Start counting
+                elapsed = now - timer_start
+                if elapsed >= timer_duration:
+                    # Play sound if not already playing
+                    if sound_process is None or sound_process.poll() is not None:
+                        try:
+                            sound_process = subprocess.Popen(['aplay', './12000.wav'])
+                        except Exception as e:
+                            print(f"Could not play sound: {e}")
+                else:
+                    # Stop sound if it's somehow playing before 10 seconds
+                    if sound_process is not None and sound_process.poll() is None:
+                        try:
+                            sound_process.terminate()
+                            sound_process = None
+                        except Exception as e:
+                            print(f"Could not stop sound: {e}")
             else:
-                # Stop sound if playing
+                # Reset timer and stop sound if playing
+                timer_start = None
                 if sound_process is not None and sound_process.poll() is None:
                     try:
                         sound_process.terminate()
@@ -79,14 +90,6 @@ def fetch_detections(frame):
             elif dog_w_collar_detected:
                 with open("detection_logs.txt", "w") as f:
                     f.write("false\n")
-
-            # Timer logic only for dog_without_collar
-            now = time.time()
-            if dog_wo_collar_detected:
-                if timer_start is None:
-                    timer_start = now
-            else:
-                timer_start = None
 
         else:
             print("❌ Roboflow Error:", response.status_code, response.text)
@@ -114,7 +117,6 @@ def draw_detections(frame):
 
     now = time.time()
 
-    # Determine which class to draw
     draw_class = "dog_without_collar" if any(det['class'] == "dog_without_collar" for det in detections) else "dog_with_collar"
 
     for det in detections:
@@ -146,7 +148,24 @@ def draw_detections(frame):
         if last_pos is None or object_moved(last_pos, current_pos):
             last_positions[obj_id] = current_pos
 
-        # Frequency and timer/counter display removed
+        # Show center counter for "dog_without_collar"
+        if class_name == "dog_without_collar":
+            with lock:
+                show_counter = timer_start is not None
+                if show_counter:
+                    elapsed = now - timer_start
+                    remaining = max(0, int(timer_duration - elapsed))
+                    if remaining > 0:
+                        # Center of bounding box
+                        center_x = int((x1 + x2) / 2)
+                        center_y = int((y1 + y2) / 2)
+                        counter_text = f"{remaining}"
+                        # Get text size for centering
+                        (text_w, text_h), baseline = cv2.getTextSize(counter_text, cv2.FONT_HERSHEY_SIMPLEX, 2, 4)
+                        text_x = center_x - text_w // 2
+                        text_y = center_y + text_h // 2
+                        cv2.putText(frame, counter_text, (text_x, text_y),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 165, 255), 4)
 
 def gstreamer_pipeline(
     capture_width=640,
