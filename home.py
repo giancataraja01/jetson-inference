@@ -103,18 +103,24 @@ class ButtonApp:
         btn1 = tk.Button(main_frame, text="Start Detection", font=button_font, command=self.start_camera_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Speaker dropdown
-        self.speaker_files = [
-            'Select Frequency',
-            '12000.wav', '15000.wav', '20000.wav', '40000.wav', '50000.wav', '60000.wav'
-        ]
-        self.speaker_var = tk.StringVar()
-        self.speaker_var.set('Select Frequency')
-        self.speaker_dropdown = ttk.Combobox(
-            main_frame, textvariable=self.speaker_var, values=self.speaker_files, font=button_font, state='readonly'
+        # Speaker frequency slider (Hz)
+        self.speaker_freqs = [12000, 15000, 20000, 40000, 50000, 60000]
+        self.speaker_slider = tk.Scale(
+            main_frame,
+            from_=min(self.speaker_freqs),
+            to=max(self.speaker_freqs),
+            orient=tk.HORIZONTAL,
+            label="Frequency (Hz)",
+            font=button_font,
+            length=200,
+            showvalue=True,
+            resolution=1000,
+            command=self.on_speaker_slider_move
         )
-        self.speaker_dropdown.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
-        self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_selected)
+        self.speaker_slider.set(self.speaker_freqs[0])
+        self.speaker_slider.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        self.slider_last_value = self.speaker_freqs[0]
+        self.speaker_slider.bind("<ButtonRelease-1>", self.on_speaker_slider_release)
 
         # Stop Detection button
         btn_stop_detection = tk.Button(
@@ -159,15 +165,21 @@ class ButtonApp:
 
         master.protocol("WM_DELETE_WINDOW", self.close_window)
 
-    def on_speaker_selected(self, event):
-        selected_file = self.speaker_var.get()
-        if selected_file != 'Select Frequency':
-            self.play_speaker_selected(selected_file)
+    def on_speaker_slider_move(self, value):
+        # Only update visually (do not play yet), but store the value
+        self.slider_last_value = int(float(value))
+
+    def on_speaker_slider_release(self, event):
+        freq = self.slider_last_value
+        if freq in self.speaker_freqs:
+            wav_file = f"{freq}.wav"
+            self.play_speaker_selected(wav_file)
+        else:
+            print(f"No sound file for {freq} Hz.")
 
     def play_speaker_selected(self, selected_file):
         print(f"Playing sound: {selected_file}")
         try:
-            # Stop any existing speaker process
             kill_all_aplay()
             self.speaker_process = subprocess.Popen(['aplay', f'./{selected_file}'])
             print("aplay launched.")
@@ -177,7 +189,7 @@ class ButtonApp:
     def stop_speaker_clicked(self):
         kill_all_aplay()
         self.speaker_process = None
-        self.speaker_var.set('Select Frequency')
+        self.speaker_slider.set(self.speaker_freqs[0])
         print("All aplay processes killed (Stop Speaker Test).")
 
     def start_camera_clicked(self):
@@ -193,7 +205,7 @@ class ButtonApp:
                 self.camera_process = None
             self.camera_process = subprocess.Popen(['python3', 'my_detection.py'])
             print("Camera started.")
-            self.start_distance_monitoring()  # <-- Start Distance Monitoring automatically!
+            self.start_distance_monitoring()
         except Exception as e:
             print(f"Failed to start camera: {e}")
 
@@ -283,7 +295,6 @@ class ButtonApp:
             self.distance_var.set("Distance: N/A")
 
     def stop_detection_clicked(self):
-        # Stop camera process
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
             try:
@@ -293,10 +304,9 @@ class ButtonApp:
             print("Camera process terminated by Stop Detection.")
             self.camera_process = None
 
-        # Stop speaker process (audio)
         kill_all_aplay()
         self.speaker_process = None
-        self.speaker_var.set('Select Frequency')
+        self.speaker_slider.set(self.speaker_freqs[0])
         print("All aplay processes killed (Stop Detection).")
 
         self.stop_distance_monitoring()
