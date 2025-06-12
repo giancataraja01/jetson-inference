@@ -2,7 +2,7 @@
 
 import tkinter as tk
 from tkinter import font
-from tkinter import ttk  # For Combobox
+from tkinter import ttk
 import subprocess
 import Jetson.GPIO as GPIO
 import time
@@ -73,7 +73,7 @@ class ButtonApp:
     def __init__(self, master):
         self.master = master
         master.title("Dog Detection")
-        master.geometry("500x500")  # Slightly wider for dropdown
+        master.geometry("500x500")
 
         self.camera_process = None
         self.speaker_process = None
@@ -91,20 +91,13 @@ class ButtonApp:
         for i in range(6):
             main_frame.grid_rowconfigure(i, weight=1)
 
-        # Start button now starts the camera!
+        # Start Detection button
         btn1 = tk.Button(main_frame, text="Start Detection", font=button_font, command=self.start_camera_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # --- Stop Detection Button ---
-        btn_stop_detection = tk.Button(
-            main_frame, text="Stop Detection", font=button_font,
-            command=self.stop_detection_clicked, bg="#be1313", fg="white"
-        )
-        btn_stop_detection.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
-
-        # --- Speaker Dropdown with "Select Frequency" default ---
+        # Speaker dropdown
         self.speaker_files = [
-            'Select Frequency', 
+            'Select Frequency',
             '12000.wav', '15000.wav', '20000.wav', '40000.wav', '50000.wav', '60000.wav'
         ]
         self.speaker_var = tk.StringVar()
@@ -114,7 +107,13 @@ class ButtonApp:
         )
         self.speaker_dropdown.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_selected)
-        # Do NOT play anything at startup!
+
+        # Stop Detection button (new)
+        btn_stop_detection = tk.Button(
+            main_frame, text="Stop Detection", font=button_font,
+            command=self.stop_detection_clicked, bg="#be1313", fg="white"
+        )
+        btn_stop_detection.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
 
         btn3 = tk.Button(main_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
         btn3.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
@@ -128,13 +127,13 @@ class ButtonApp:
         btn_stop_speaker = tk.Button(main_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
         btn_stop_speaker.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
-        # --- Distance reading label ---
+        # Distance label
         self.distance_var = tk.StringVar()
         self.distance_var.set("Distance: N/A")
         self.distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
         self.distance_label.grid(row=4, column=0, columnspan=3, sticky="nsew", padx=5, pady=5)
 
-        # --- Start/Stop Dynamic Distance Monitoring ---
+        # Start/Stop Monitor
         self.btn_start_monitor = tk.Button(
             main_frame, text="Start Monitor", font=button_font,
             command=self.start_distance_monitoring, bg="#34be13", fg="white"
@@ -173,6 +172,7 @@ class ButtonApp:
             self.speaker_process.terminate()
             print("Speaker process terminated.")
             self.speaker_process = None
+            self.speaker_var.set('Select Frequency')  # Reset dropdown
         else:
             print("No speaker process is running.")
 
@@ -263,19 +263,19 @@ class ButtonApp:
         else:
             self.distance_var.set("Distance: N/A")
 
-    # --- Stop Detection Handler ---
+    # Stop Detection: stops camera, audio (like Stop Speaker Test), and distance monitoring
     def stop_detection_clicked(self):
-        # Stop camera process
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
             print("Camera process terminated by Stop Detection.")
             self.camera_process = None
-        # Stop speaker process (AUDIO)
         if self.speaker_process and self.speaker_process.poll() is None:
             self.speaker_process.terminate()
             print("Speaker process terminated by Stop Detection.")
             self.speaker_process = None
-        # Stop distance monitoring
+            self.speaker_var.set('Select Frequency')  # Reset the dropdown just like Stop Speaker Test
+        else:
+            print("No speaker process is running.")
         self.stop_distance_monitoring()
         print("All detection processes stopped.")
 
