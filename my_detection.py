@@ -5,12 +5,11 @@ import time
 import threading
 import random
 import math
+import subprocess
 
-# Play audio at start
-import simpleaudio as sa
+# Play 15000.wav at start using aplay (system audio player)
 try:
-    wave_obj = sa.WaveObject.from_wave_file("15000.wav")
-    play_obj = wave_obj.play()
+    subprocess.Popen(['aplay', './15000.wav'])
 except Exception as e:
     print(f"Could not play sound: {e}")
 
