@@ -92,7 +92,7 @@ class ButtonApp:
             main_frame.grid_rowconfigure(i, weight=1)
 
         # Start button now starts the camera!
-        btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.start_camera_clicked)
+        btn1 = tk.Button(main_frame, text="Start Detection", font=button_font, command=self.start_camera_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
         # --- Speaker Dropdown with "Select Frequency" default ---
