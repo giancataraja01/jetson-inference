@@ -2,6 +2,7 @@
 
 import tkinter as tk
 from tkinter import font
+import subprocess  # Added for running external scripts
 
 class ButtonApp:
     def __init__(self, master):
@@ -68,9 +69,14 @@ class ButtonApp:
         print("Button 'Action 3' was clicked!")
 
     def action4_clicked(self):
-        """Placeholder function for Button 4."""
-        print("Button 'Action 4' was clicked!")
-        
+        """Executes my_detection.py when 'Test Camera' is clicked."""
+        print("Button 'Test Camera' was clicked!")
+        try:
+            subprocess.Popen(['python3', 'my_detection.py'])
+            print("my_detection.py launched.")
+        except Exception as e:
+            print(f"Failed to launch my_detection.py: {e}")
+
     def close_window(self):
         """Closes the application."""
         print("Closing the application...")
