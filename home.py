@@ -10,7 +10,7 @@ class ButtonApp:
         'master' is the main window (the root).
         """
         self.master = master
-        master.title("Simple UI for Jetson Nano")
+        master.title("Dog Detection")
         master.geometry("400x300") # Set window size: width x height
 
         # --- Configure a custom font for the buttons ---
@@ -33,19 +33,19 @@ class ButtonApp:
         main_frame.grid_rowconfigure(1, weight=1)
 
         # Button 1
-        btn1 = tk.Button(main_frame, text="Action 1", font=button_font, command=self.action1_clicked)
+        btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.action1_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
         # Button 2
-        btn2 = tk.Button(main_frame, text="Action 2", font=button_font, command=self.action2_clicked)
+        btn2 = tk.Button(main_frame, text="Test Speaker", font=button_font, command=self.action2_clicked)
         btn2.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
         # Button 3
-        btn3 = tk.Button(main_frame, text="Action 3", font=button_font, command=self.action3_clicked)
+        btn3 = tk.Button(main_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
         btn3.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
         # Button 4
-        btn4 = tk.Button(main_frame, text="Action 4", font=button_font, command=self.action4_clicked)
+        btn4 = tk.Button(main_frame, text="Test Camera", font=button_font, command=self.action4_clicked)
         btn4.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
 
         # --- Create a Quit button ---
