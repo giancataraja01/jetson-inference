@@ -6,73 +6,61 @@ import subprocess
 
 class ButtonApp:
     def __init__(self, master):
-        """
-        Initializes the application window.
-        'master' is the main window (the root).
-        """
         self.master = master
         master.title("Dog Detection")
-        master.geometry("400x400") # Increased height for extra button
+        master.geometry("400x450") # Extra space for distance display
 
-        # --- Track the camera and speaker processes ---
         self.camera_process = None
         self.speaker_process = None
 
-        # --- Configure a custom font for the buttons ---
         button_font = font.Font(family='Helvetica', size=12, weight='bold')
 
-        # --- Create a main frame to hold all the widgets ---
         main_frame = tk.Frame(master, padx=15, pady=15)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # --- Configure grid for 4 rows x 2 columns ---
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
         main_frame.grid_rowconfigure(0, weight=1)
         main_frame.grid_rowconfigure(1, weight=1)
         main_frame.grid_rowconfigure(2, weight=1)
         main_frame.grid_rowconfigure(3, weight=1)
+        main_frame.grid_rowconfigure(4, weight=1)
 
-        # Button 1
         btn1 = tk.Button(main_frame, text="Start", font=button_font, command=self.action1_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Button 2 - Test Speaker
         btn2 = tk.Button(main_frame, text="Test Speaker", font=button_font, command=self.action2_clicked)
         btn2.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
-        # Button 3
         btn3 = tk.Button(main_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
         btn3.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Button 4
         btn4 = tk.Button(main_frame, text="Test Camera", font=button_font, command=self.action4_clicked)
         btn4.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
 
-        # --- Stop Camera Button ---
         btn_stop_camera = tk.Button(main_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
         btn_stop_camera.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
-        # --- Stop Speaker Test Button ---
         btn_stop_speaker = tk.Button(main_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
         btn_stop_speaker.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
-        # --- Create a Quit button ---
+        # --- Distance reading label ---
+        self.distance_var = tk.StringVar()
+        self.distance_var.set("Distance: N/A")
+        self.distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
+        self.distance_label.grid(row=4, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+
         quit_button = tk.Button(master, text="Quit", command=self.close_window, bg="#c42b2b", fg="white")
         quit_button.pack(pady=10)
 
-        # --- Handle window close event (clicking the 'X' button) ---
         master.protocol("WM_DELETE_WINDOW", self.close_window)
 
     def action1_clicked(self):
-        """Placeholder function for Button 1."""
         print("Button 'Action 1' was clicked!")
 
     def action2_clicked(self):
-        """Plays the WAV file using aplay when 'Test Speaker' is clicked."""
         print("Button 'Test Speaker' was clicked!")
         try:
-            # If a speaker process is already running, terminate it first
             if self.speaker_process and self.speaker_process.poll() is None:
                 self.speaker_process.terminate()
                 print("Existing speaker process terminated.")
@@ -82,7 +70,6 @@ class ButtonApp:
             print(f"Failed to launch aplay: {e}")
 
     def stop_speaker_clicked(self):
-        """Stops the speaker process if running."""
         if self.speaker_process and self.speaker_process.poll() is None:
             self.speaker_process.terminate()
             print("Speaker process terminated.")
@@ -91,14 +78,23 @@ class ButtonApp:
             print("No speaker process is running.")
 
     def action3_clicked(self):
-        """Placeholder function for Button 3."""
-        print("Button 'Action 3' was clicked!")
+        print("Button 'Test Distance' was clicked!")
+        try:
+            result = subprocess.run(['python3', 'distance.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
+            if result.returncode == 0:
+                output = result.stdout.strip()
+                self.distance_var.set(f"Distance: {output}")
+                print(f"Distance reading: {output}")
+            else:
+                self.distance_var.set("Distance: Error")
+                print(f"Error in distance.py: {result.stderr.strip()}")
+        except Exception as e:
+            self.distance_var.set("Distance: Error")
+            print(f"Exception running distance.py: {e}")
 
     def action4_clicked(self):
-        """Executes my_detection.py when 'Test Camera' is clicked."""
         print("Button 'Test Camera' was clicked!")
         try:
-            # If a camera process is already running, terminate it first
             if self.camera_process and self.camera_process.poll() is None:
                 self.camera_process.terminate()
                 print("Existing camera process terminated.")
@@ -108,7 +104,6 @@ class ButtonApp:
             print(f"Failed to launch my_detection.py: {e}")
 
     def stop_camera_clicked(self):
-        """Stops the camera process if running."""
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
             print("Camera process terminated.")
@@ -117,25 +112,16 @@ class ButtonApp:
             print("No camera process is running.")
 
     def close_window(self):
-        """Closes the application."""
         print("Closing the application...")
-        # Ensure camera process is terminated on exit
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
             print("Camera process terminated on exit.")
-        # Ensure speaker process is terminated on exit
         if self.speaker_process and self.speaker_process.poll() is None:
             self.speaker_process.terminate()
             print("Speaker process terminated on exit.")
         self.master.destroy()
 
-# --- Main execution block ---
 if __name__ == "__main__":
-    # Create the main window
     root = tk.Tk()
-
-    # Create an instance of our app class
     app = ButtonApp(root)
-
-    # Start the GUI event loop
     root.mainloop()
