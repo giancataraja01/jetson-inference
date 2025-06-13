@@ -28,9 +28,7 @@ GPIO.setup(ECHO, GPIO.IN)
 
 # --- Firebase Initialization (comment if not needed) ---
 cred = credentials.Certificate(FIREBASE_CREDENTIAL_PATH)
-firebase_admin.initialize_app(cred, {
-    'databaseURL': FIREBASE_DB_URL
-})
+firebase_admin.initialize_app(cred, {'databaseURL': FIREBASE_DB_URL})
 distance_ref = db.reference('distance')
 player_ref = db.reference('player')
 
@@ -45,29 +43,24 @@ def read_trigger_file():
 def measure_distance():
     GPIO.output(TRIG, False)
     time.sleep(0.1)
-
     GPIO.output(TRIG, True)
     time.sleep(0.00001)
     GPIO.output(TRIG, False)
-
     timeout_start = time.time() + 1
     while GPIO.input(ECHO) == 0:
         if time.time() > timeout_start:
             print("Timeout: ECHO did not go high")
             return None
     pulse_start = time.time()
-
     timeout_end = time.time() + 1
     while GPIO.input(ECHO) == 1:
         if time.time() > timeout_end:
             print("Timeout: ECHO did not go low")
             return None
     pulse_end = time.time()
-
     pulse_duration = pulse_end - pulse_start
     distance_cm = round(pulse_duration * 17150, 2)
     distance_m = round(distance_cm / 100, 3)
-
     return distance_cm, distance_m
 
 def kill_all_aplay():
@@ -81,7 +74,7 @@ class ButtonApp:
     def __init__(self, master):
         self.master = master
         master.title("Dog Detection")
-        master.geometry("650x500")
+        master.geometry("700x520")
 
         self.camera_process = None
         self.speaker_process = None
@@ -89,22 +82,28 @@ class ButtonApp:
         self.distance_job = None
 
         button_font = font.Font(family='Helvetica', size=12, weight='bold')
+        # Set up tabs
+        self.notebook = ttk.Notebook(master)
+        self.notebook.pack(fill=tk.BOTH, expand=True)
 
-        main_frame = tk.Frame(master, padx=15, pady=15)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # Home tab
+        self.home_frame = tk.Frame(self.notebook, padx=15, pady=15)
+        self.notebook.add(self.home_frame, text='Home')
 
-        main_frame.grid_columnconfigure(0, weight=1)
-        main_frame.grid_columnconfigure(1, weight=1)
-        main_frame.grid_columnconfigure(2, weight=1)
-        main_frame.grid_columnconfigure(3, weight=1)
-        for i in range(6):
-            main_frame.grid_rowconfigure(i, weight=1)
+        # Settings tab (empty for now)
+        self.settings_frame = tk.Frame(self.notebook, padx=15, pady=15)
+        self.notebook.add(self.settings_frame, text='Settings')
 
-        # Start Detection button
+        # Home tab layout
+        main_frame = self.home_frame
+        for c in range(4):
+            main_frame.grid_columnconfigure(c, weight=1)
+        for r in range(6):
+            main_frame.grid_rowconfigure(r, weight=1)
+
         btn1 = tk.Button(main_frame, text="Start Detection", font=button_font, command=self.start_camera_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Frequencies for dropdown (Hz)
         self.speaker_freqs = [
             "10khz", "11khz", "13khz", "14khz", "15khz", "16khz", "17khz", "18khz", "19khz", "20khz",
             "21khz", "22khz", "23khz", "24khz", "25khz", "30khz", "40khz", "50khz", "60khz"
@@ -121,7 +120,7 @@ class ButtonApp:
         self.speaker_dropdown.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_dropdown_selected)
 
-        # Second dropdown: just display frequency, no action
+        # Second dropdown: only displays frequency, no event binding
         self.display_freq_var = tk.StringVar()
         self.display_freq_var.set(self.speaker_freqs[0])
         self.display_freq_dropdown = ttk.Combobox(
@@ -132,9 +131,7 @@ class ButtonApp:
             state="readonly"
         )
         self.display_freq_dropdown.grid(row=0, column=3, sticky="nsew", padx=5, pady=5)
-        # No event binding for this dropdown!
 
-        # Stop Detection button
         btn_stop_detection = tk.Button(
             main_frame, text="Stop Detection", font=button_font,
             command=self.stop_detection_clicked, bg="#be1313", fg="white"
@@ -153,13 +150,11 @@ class ButtonApp:
         btn_stop_speaker = tk.Button(main_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
         btn_stop_speaker.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
-        # Distance label
         self.distance_var = tk.StringVar()
         self.distance_var.set("Distance: N/A")
         self.distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
         self.distance_label.grid(row=4, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)
 
-        # Start/Stop Monitor
         self.btn_start_monitor = tk.Button(
             main_frame, text="Start Monitor", font=button_font,
             command=self.start_distance_monitoring, bg="#34be13", fg="white"
@@ -308,12 +303,10 @@ class ButtonApp:
                 self.camera_process.kill()
             print("Camera process terminated by Stop Detection.")
             self.camera_process = None
-
         kill_all_aplay()
         self.speaker_process = None
         self.freq_var.set(self.speaker_freqs[0])
         print("All aplay processes killed (Stop Detection).")
-
         self.stop_distance_monitoring()
         print("All detection processes stopped.")
 
