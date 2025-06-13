@@ -99,7 +99,7 @@ class ButtonApp:
         self.test_camera_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.test_camera_frame, text='Test Camera')
 
-        # Test Distance tab (updated, no Test Distance button)
+        # Test Distance tab
         self.test_distance_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.test_distance_frame, text='Test Distance')
 
@@ -137,7 +137,11 @@ class ButtonApp:
         )
         btn_stop_detection.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
 
-        # Removed: Test Distance button, Start/Stop Monitor, Distance label from Home tab
+        # Distance label in Home tab (live-updating)
+        self.distance_var = tk.StringVar()
+        self.distance_var.set("Distance: N/A")
+        self.home_distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
+        self.home_distance_label.grid(row=4, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)
 
         quit_button = tk.Button(master, text="Quit", command=self.close_window, bg="#c42b2b", fg="white")
         quit_button.pack(pady=10)
@@ -185,9 +189,7 @@ class ButtonApp:
         for r in range(4):
             distance_frame.grid_rowconfigure(r, weight=1)
 
-        # Distance label
-        self.distance_var = tk.StringVar()
-        self.distance_var.set("Distance: N/A")
+        # Distance label in Test Distance tab (live-updating)
         self.distance_label = tk.Label(distance_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
         self.distance_label.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
