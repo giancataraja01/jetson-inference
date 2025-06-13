@@ -105,7 +105,7 @@ class ButtonApp:
 
         # Frequencies for dropdown (Hz)
         self.speaker_freqs = [
-            "10khz", "11khz", "13khz", "14khz", "15khz", "16khz", "17khz", "18khz", "19khz", "20khz",
+            "10khz", "11khz", "12khz", "13khz", "14khz", "15khz", "16khz", "17khz", "18khz", "19khz", "20khz",
             "21khz", "22khz", "23khz", "24khz", "25khz", "30khz", "40khz", "50khz", "60khz"
         ]
 
@@ -247,8 +247,14 @@ class ButtonApp:
                     self.camera_process.kill()
                 print("Existing camera process terminated.")
                 self.camera_process = None
-            self.camera_process = subprocess.Popen(['python3', 'my_detection.py'])
-            print("Camera started.")
+
+            freq = self.display_freq_var.get()
+            if freq == "10khz":
+                script = "my_detection.py"
+            else:
+                script = f"my_detection{freq}.py"
+            self.camera_process = subprocess.Popen(['python3', script])
+            print(f"Camera started using {script}.")
             self.start_distance_monitoring()
         except Exception as e:
             print(f"Failed to start camera: {e}")
