@@ -82,6 +82,7 @@ class ButtonApp:
         self.distance_job = None
 
         button_font = font.Font(family='Helvetica', size=12, weight='bold')
+
         # Set up tabs
         self.notebook = ttk.Notebook(master)
         self.notebook.pack(fill=tk.BOTH, expand=True)
@@ -90,11 +91,17 @@ class ButtonApp:
         self.home_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.home_frame, text='Home')
 
-        # Settings tab (empty for now)
+        # Settings tab
         self.settings_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.settings_frame, text='Settings')
 
-        # Home tab layout
+        # Frequencies for dropdown (Hz)
+        self.speaker_freqs = [
+            "10khz", "11khz", "13khz", "14khz", "15khz", "16khz", "17khz", "18khz", "19khz", "20khz",
+            "21khz", "22khz", "23khz", "24khz", "25khz", "30khz", "40khz", "50khz", "60khz"
+        ]
+
+        # --- Home tab layout ---
         main_frame = self.home_frame
         for c in range(4):
             main_frame.grid_columnconfigure(c, weight=1)
@@ -104,23 +111,7 @@ class ButtonApp:
         btn1 = tk.Button(main_frame, text="Start Detection", font=button_font, command=self.start_camera_clicked)
         btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        self.speaker_freqs = [
-            "10khz", "11khz", "13khz", "14khz", "15khz", "16khz", "17khz", "18khz", "19khz", "20khz",
-            "21khz", "22khz", "23khz", "24khz", "25khz", "30khz", "40khz", "50khz", "60khz"
-        ]
-        self.freq_var = tk.StringVar()
-        self.freq_var.set(self.speaker_freqs[0])
-        self.speaker_dropdown = ttk.Combobox(
-            main_frame,
-            textvariable=self.freq_var,
-            values=self.speaker_freqs,
-            font=button_font,
-            state="readonly"
-        )
-        self.speaker_dropdown.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
-        self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_dropdown_selected)
-
-        # Second dropdown: only displays frequency, no event binding
+        # Dropdown (display only, no sound) in Home
         self.display_freq_var = tk.StringVar()
         self.display_freq_var.set(self.speaker_freqs[0])
         self.display_freq_dropdown = ttk.Combobox(
@@ -147,9 +138,7 @@ class ButtonApp:
         btn_stop_camera = tk.Button(main_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
         btn_stop_camera.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
-        btn_stop_speaker = tk.Button(main_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
-        btn_stop_speaker.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
-
+        # Distance label
         self.distance_var = tk.StringVar()
         self.distance_var.set("Distance: N/A")
         self.distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
@@ -171,6 +160,30 @@ class ButtonApp:
         quit_button.pack(pady=10)
 
         master.protocol("WM_DELETE_WINDOW", self.close_window)
+
+        # --- Settings tab layout ---
+        settings_frame = self.settings_frame
+        for c in range(2):
+            settings_frame.grid_columnconfigure(c, weight=1)
+        for r in range(2):
+            settings_frame.grid_rowconfigure(r, weight=1)
+
+        # Dropdown (with music) in Settings
+        self.freq_var = tk.StringVar()
+        self.freq_var.set(self.speaker_freqs[0])
+        self.speaker_dropdown = ttk.Combobox(
+            settings_frame,
+            textvariable=self.freq_var,
+            values=self.speaker_freqs,
+            font=button_font,
+            state="readonly"
+        )
+        self.speaker_dropdown.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_dropdown_selected)
+
+        # Stop Speaker Test button in Settings
+        btn_stop_speaker = tk.Button(settings_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
+        btn_stop_speaker.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
     def on_speaker_dropdown_selected(self, event):
         freq = self.freq_var.get()
