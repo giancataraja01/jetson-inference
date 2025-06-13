@@ -137,26 +137,7 @@ class ButtonApp:
         )
         btn_stop_detection.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
 
-        btn3 = tk.Button(main_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
-        btn3.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
-
-        # Distance label
-        self.distance_var = tk.StringVar()
-        self.distance_var.set("Distance: N/A")
-        self.distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
-        self.distance_label.grid(row=4, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)
-
-        self.btn_start_monitor = tk.Button(
-            main_frame, text="Start Monitor", font=button_font,
-            command=self.start_distance_monitoring, bg="#34be13", fg="white"
-        )
-        self.btn_start_monitor.grid(row=5, column=0, sticky="nsew", padx=5, pady=5)
-
-        self.btn_stop_monitor = tk.Button(
-            main_frame, text="Stop Monitor", font=button_font,
-            command=self.stop_distance_monitoring, bg="#be1340", fg="white"
-        )
-        self.btn_stop_monitor.grid(row=5, column=1, sticky="nsew", padx=5, pady=5)
+        # REMOVED: Test Distance button, Start/Stop Monitor, Distance label from Home tab
 
         quit_button = tk.Button(master, text="Quit", command=self.close_window, bg="#c42b2b", fg="white")
         quit_button.pack(pady=10)
@@ -170,7 +151,6 @@ class ButtonApp:
         for r in range(2):
             settings_frame.grid_rowconfigure(r, weight=1)
 
-        # Dropdown (with music) in Test Speaker
         self.freq_var = tk.StringVar()
         self.freq_var.set(self.speaker_freqs[0])
         self.speaker_dropdown = ttk.Combobox(
@@ -183,7 +163,6 @@ class ButtonApp:
         self.speaker_dropdown.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_dropdown_selected)
 
-        # Stop Speaker Test button in Test Speaker
         btn_stop_speaker = tk.Button(settings_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
         btn_stop_speaker.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
@@ -199,10 +178,33 @@ class ButtonApp:
         btn_stop_camera = tk.Button(test_camera_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
         btn_stop_camera.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
-        # --- Test Distance tab layout (optional: add your widgets here) ---
-        # Example:
-        # label = tk.Label(self.test_distance_frame, text="Test Distance Tab (add your widgets here)", font=button_font)
-        # label.pack(pady=20)
+        # --- Test Distance tab layout (ALL DISTANCE CONTROLS HERE) ---
+        distance_frame = self.test_distance_frame
+        for c in range(2):
+            distance_frame.grid_columnconfigure(c, weight=1)
+        for r in range(4):
+            distance_frame.grid_rowconfigure(r, weight=1)
+
+        # Distance label
+        self.distance_var = tk.StringVar()
+        self.distance_var.set("Distance: N/A")
+        self.distance_label = tk.Label(distance_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
+        self.distance_label.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+
+        btn_test_distance = tk.Button(distance_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
+        btn_test_distance.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+
+        self.btn_start_monitor = tk.Button(
+            distance_frame, text="Start Monitor", font=button_font,
+            command=self.start_distance_monitoring, bg="#34be13", fg="white"
+        )
+        self.btn_start_monitor.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
+
+        self.btn_stop_monitor = tk.Button(
+            distance_frame, text="Stop Monitor", font=button_font,
+            command=self.stop_distance_monitoring, bg="#be1340", fg="white"
+        )
+        self.btn_stop_monitor.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
 
     def on_speaker_dropdown_selected(self, event):
         freq = self.freq_var.get()
