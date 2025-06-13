@@ -116,32 +116,43 @@ class ButtonApp:
         for r in range(6):
             main_frame.grid_rowconfigure(r, weight=1)
 
-        btn1 = tk.Button(main_frame, text="Start Detection", font=button_font, command=self.start_camera_clicked)
-        btn1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        # Distance variable (shared for home and distance tabs)
+        self.distance_var = tk.StringVar()
+        self.distance_var.set("Distance: N/A")
 
-        # Dropdown (display only, no sound) in Home
+        # Distance label in Home tab (live-updating)
+        self.home_distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
+        self.home_distance_label.grid(row=4, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)
+
+        # Dropdown (require selection before enabling Start Detection)
         self.display_freq_var = tk.StringVar()
-        self.display_freq_var.set(self.speaker_freqs[0])
+        self.display_freq_var.set("Select Frequency...")  # Set default value
         self.display_freq_dropdown = ttk.Combobox(
             main_frame,
             textvariable=self.display_freq_var,
-            values=self.speaker_freqs,
+            values=["Select Frequency..."] + self.speaker_freqs,
             font=button_font,
             state="readonly"
         )
         self.display_freq_dropdown.grid(row=0, column=3, sticky="nsew", padx=5, pady=5)
+
+        # Start Detection button (disabled by default)
+        self.btn_start_detection = tk.Button(main_frame, text="Start Detection", font=button_font, command=self.start_camera_clicked, state=tk.DISABLED)
+        self.btn_start_detection.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+        # Enable/disable Start Detection based on dropdown selection
+        def check_start_detection_state(*args):
+            if self.display_freq_var.get() != "Select Frequency...":
+                self.btn_start_detection.config(state=tk.NORMAL)
+            else:
+                self.btn_start_detection.config(state=tk.DISABLED)
+        self.display_freq_var.trace_add("write", check_start_detection_state)
 
         btn_stop_detection = tk.Button(
             main_frame, text="Stop Detection", font=button_font,
             command=self.stop_detection_clicked, bg="#be1313", fg="white"
         )
         btn_stop_detection.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
-
-        # Distance label in Home tab (live-updating)
-        self.distance_var = tk.StringVar()
-        self.distance_var.set("Distance: N/A")
-        self.home_distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
-        self.home_distance_label.grid(row=4, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)
 
         quit_button = tk.Button(master, text="Quit", command=self.close_window, bg="#c42b2b", fg="white")
         quit_button.pack(pady=10)
