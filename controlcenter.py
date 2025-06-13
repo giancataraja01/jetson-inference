@@ -136,12 +136,6 @@ class ButtonApp:
         btn3 = tk.Button(main_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
         btn3.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
-        # --- REMOVED FROM HOME TAB ---
-        # btn4 = tk.Button(main_frame, text="Test Camera", font=button_font, command=self.action4_clicked)
-        # btn4.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
-        # btn_stop_camera = tk.Button(main_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
-        # btn_stop_camera.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
-
         # Distance label
         self.distance_var = tk.StringVar()
         self.distance_var.set("Distance: N/A")
