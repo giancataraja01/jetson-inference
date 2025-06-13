@@ -30,6 +30,7 @@ class ButtonApp:
         master.geometry("340x230")
 
         self.camera_process = None
+        self.camera_processes = []
 
         button_font = font.Font(family='Helvetica', size=12, weight='bold')
 
@@ -41,8 +42,8 @@ class ButtonApp:
         main_frame.grid_rowconfigure(0, weight=1)
 
         # --- DROPDOWN FOR FREQUENCY SELECTION ---
-        self.freq_var = tk.StringVar(value="Select Frequency")
-        self.freq_options = ["Select Frequency"] + [f"{khz}khz" for khz in range(10, 61)]
+        self.freq_var = tk.StringVar(value="11khz")  # Set default to 11kHz
+        self.freq_options = [f"{khz}khz" for khz in range(11, 61)]
         freq_label = tk.Label(main_frame, text="Select Frequency:")
         freq_label.grid(row=0, column=0, columnspan=2, pady=(0,5))
         self.freq_dropdown = ttk.Combobox(main_frame, textvariable=self.freq_var, values=self.freq_options, state="readonly")
@@ -66,40 +67,52 @@ class ButtonApp:
         selected_freq = self.freq_var.get()
         print(f"Start button pressed! Selected frequency: {selected_freq}")
 
-        if selected_freq == "Select Frequency":
+        if not selected_freq.endswith("khz"):
             messagebox.showwarning("Selection Required", "Please select a frequency before starting detection.")
             return
 
+        # Stop existing processes
+        self.stop_detection_clicked()
+
+        khz = selected_freq.replace("khz", "")
+        script_to_run = f"my_detection{khz}khz.py"
+
         try:
-            if self.camera_process and self.camera_process.poll() is None:
-                self.camera_process.terminate()
-                try:
-                    self.camera_process.wait(timeout=1)
-                except subprocess.TimeoutExpired:
-                    self.camera_process.kill()
-                print("Existing camera process terminated.")
-                self.camera_process = None
+            print(f"Checking for 'dog_without_collar' in {script_to_run}...")
+            result = subprocess.run(['python3', script_to_run], capture_output=True, text=True)
 
-            khz = selected_freq.replace("khz", "")
-            script_to_run = f"my_detection{khz}khz.py"
-
-            if selected_freq == "60khz":
-                print("Running detection for 60khz - will check for 'dog_without_collar' before executing.")
-                result = subprocess.run(['python3', script_to_run], capture_output=True, text=True)
-                if "dog_without_collar" in result.stdout:
-                    print("'dog_without_collar' detected. Executing my_detection60khz.py.")
-                    self.camera_process = subprocess.Popen(['python3', script_to_run])
-                else:
-                    print("'dog_without_collar' not detected. Not executing my_detection60khz.py.")
+            if "dog_without_collar" in result.stdout:
+                print("'dog_without_collar' detected. Executing all frequency scripts.")
+                self.camera_processes = []
+                for khz_val in range(11, 61):  # 11kHz to 60kHz
+                    freq_script = f"my_detection{khz_val}khz.py"
+                    try:
+                        proc = subprocess.Popen(['python3', freq_script])
+                        self.camera_processes.append(proc)
+                        print(f"Started {freq_script}")
+                    except Exception as e:
+                        print(f"Failed to start {freq_script}: {e}")
             else:
-                print(f"Executing {script_to_run} for {selected_freq}.")
+                print("'dog_without_collar' not detected. Executing only selected frequency script.")
                 self.camera_process = subprocess.Popen(['python3', script_to_run])
+                print(f"Executing {script_to_run} for {selected_freq}.")
 
-            print("Camera started.")
+            print("Detection started.")
         except Exception as e:
-            print(f"Failed to start camera: {e}")
+            print(f"Failed to start detection: {e}")
 
     def stop_detection_clicked(self):
+        # Stop all processes if running multiple
+        if self.camera_processes:
+            for proc in self.camera_processes:
+                if proc and proc.poll() is None:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+            print("All detection processes terminated by Stop Detection.")
+            self.camera_processes = []
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
             try:
@@ -114,6 +127,17 @@ class ButtonApp:
 
     def close_window(self):
         print("Closing the application...")
+        # Stop all processes if running multiple
+        if self.camera_processes:
+            for proc in self.camera_processes:
+                if proc and proc.poll() is None:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+            print("All detection processes terminated on exit.")
+            self.camera_processes = []
         if self.camera_process and self.camera_process.poll() is None:
             self.camera_process.terminate()
             try:
