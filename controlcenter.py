@@ -99,6 +99,10 @@ class ButtonApp:
         self.test_camera_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.test_camera_frame, text='Test Camera')
 
+        # Test Distance tab (NEW)
+        self.test_distance_frame = tk.Frame(self.notebook, padx=15, pady=15)
+        self.notebook.add(self.test_distance_frame, text='Test Distance')
+
         # Frequencies for dropdown (Hz)
         self.speaker_freqs = [
             "10khz", "11khz", "13khz", "14khz", "15khz", "16khz", "17khz", "18khz", "19khz", "20khz",
@@ -194,6 +198,11 @@ class ButtonApp:
         btn4.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         btn_stop_camera = tk.Button(test_camera_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
         btn_stop_camera.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+
+        # --- Test Distance tab layout (optional: add your widgets here) ---
+        # Example:
+        # label = tk.Label(self.test_distance_frame, text="Test Distance Tab (add your widgets here)", font=button_font)
+        # label.pack(pady=20)
 
     def on_speaker_dropdown_selected(self, event):
         freq = self.freq_var.get()
