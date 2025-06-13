@@ -99,7 +99,7 @@ class ButtonApp:
         self.test_camera_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.test_camera_frame, text='Test Camera')
 
-        # Test Distance tab (NEW)
+        # Test Distance tab (updated, no Test Distance button)
         self.test_distance_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.test_distance_frame, text='Test Distance')
 
@@ -137,7 +137,7 @@ class ButtonApp:
         )
         btn_stop_detection.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
 
-        # REMOVED: Test Distance button, Start/Stop Monitor, Distance label from Home tab
+        # Removed: Test Distance button, Start/Stop Monitor, Distance label from Home tab
 
         quit_button = tk.Button(master, text="Quit", command=self.close_window, bg="#c42b2b", fg="white")
         quit_button.pack(pady=10)
@@ -178,7 +178,7 @@ class ButtonApp:
         btn_stop_camera = tk.Button(test_camera_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
         btn_stop_camera.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
-        # --- Test Distance tab layout (ALL DISTANCE CONTROLS HERE) ---
+        # --- Test Distance tab layout (no Test Distance button) ---
         distance_frame = self.test_distance_frame
         for c in range(2):
             distance_frame.grid_columnconfigure(c, weight=1)
@@ -190,9 +190,6 @@ class ButtonApp:
         self.distance_var.set("Distance: N/A")
         self.distance_label = tk.Label(distance_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
         self.distance_label.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
-
-        btn_test_distance = tk.Button(distance_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
-        btn_test_distance.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
         self.btn_start_monitor = tk.Button(
             distance_frame, text="Start Monitor", font=button_font,
