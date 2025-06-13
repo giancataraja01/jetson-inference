@@ -81,7 +81,7 @@ class ButtonApp:
     def __init__(self, master):
         self.master = master
         master.title("Dog Detection")
-        master.geometry("500x500")
+        master.geometry("650x500")
 
         self.camera_process = None
         self.speaker_process = None
@@ -96,6 +96,7 @@ class ButtonApp:
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
         main_frame.grid_columnconfigure(2, weight=1)
+        main_frame.grid_columnconfigure(3, weight=1)
         for i in range(6):
             main_frame.grid_rowconfigure(i, weight=1)
 
@@ -120,6 +121,19 @@ class ButtonApp:
         self.speaker_dropdown.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_dropdown_selected)
 
+        # Second dropdown: just display frequency, no action
+        self.display_freq_var = tk.StringVar()
+        self.display_freq_var.set(self.speaker_freqs[0])
+        self.display_freq_dropdown = ttk.Combobox(
+            main_frame,
+            textvariable=self.display_freq_var,
+            values=self.speaker_freqs,
+            font=button_font,
+            state="readonly"
+        )
+        self.display_freq_dropdown.grid(row=0, column=3, sticky="nsew", padx=5, pady=5)
+        # No event binding for this dropdown!
+
         # Stop Detection button
         btn_stop_detection = tk.Button(
             main_frame, text="Stop Detection", font=button_font,
@@ -143,7 +157,7 @@ class ButtonApp:
         self.distance_var = tk.StringVar()
         self.distance_var.set("Distance: N/A")
         self.distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
-        self.distance_label.grid(row=4, column=0, columnspan=3, sticky="nsew", padx=5, pady=5)
+        self.distance_label.grid(row=4, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)
 
         # Start/Stop Monitor
         self.btn_start_monitor = tk.Button(
