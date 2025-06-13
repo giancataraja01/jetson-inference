@@ -34,7 +34,7 @@ player_ref = db.reference('player')
 
 def read_trigger_file():
     try:
-        with open(FILE_PATH, 'r') as file:
+        with open(FILE_PATH, ' 'r') as file:
             content = file.read().strip().lower()
             return content == 'true'
     except FileNotFoundError:
@@ -91,14 +91,13 @@ class ButtonApp:
         self.home_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.home_frame, text='Home')
 
-        # Test Speaker tab (was Settings)
+        # Test Speaker tab
         self.settings_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.settings_frame, text='Test Speaker')
 
-        # --- NEW: Test Camera tab ---
+        # Test Camera tab
         self.test_camera_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.test_camera_frame, text='Test Camera')
-        # (Add widgets to self.test_camera_frame as needed)
 
         # Frequencies for dropdown (Hz)
         self.speaker_freqs = [
@@ -137,11 +136,11 @@ class ButtonApp:
         btn3 = tk.Button(main_frame, text="Test Distance", font=button_font, command=self.action3_clicked)
         btn3.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
-        btn4 = tk.Button(main_frame, text="Test Camera", font=button_font, command=self.action4_clicked)
-        btn4.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
-
-        btn_stop_camera = tk.Button(main_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
-        btn_stop_camera.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+        # --- REMOVED FROM HOME TAB ---
+        # btn4 = tk.Button(main_frame, text="Test Camera", font=button_font, command=self.action4_clicked)
+        # btn4.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
+        # btn_stop_camera = tk.Button(main_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
+        # btn_stop_camera.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
         # Distance label
         self.distance_var = tk.StringVar()
@@ -190,14 +189,17 @@ class ButtonApp:
         btn_stop_speaker = tk.Button(settings_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
         btn_stop_speaker.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
-        # --- (Optional) Test Camera tab layout ---
+        # --- Test Camera tab layout ---
         test_camera_frame = self.test_camera_frame
         for c in range(2):
             test_camera_frame.grid_columnconfigure(c, weight=1)
         for r in range(2):
             test_camera_frame.grid_rowconfigure(r, weight=1)
-        # Example: add a button (customize as needed)
-        tk.Label(test_camera_frame, text="Test Camera Tab", font=button_font).grid(row=0, column=0, padx=10, pady=10, sticky="w")
+
+        btn4 = tk.Button(test_camera_frame, text="Test Camera", font=button_font, command=self.action4_clicked)
+        btn4.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        btn_stop_camera = tk.Button(test_camera_frame, text="Stop Camera", font=button_font, command=self.stop_camera_clicked, bg="#e08b1c", fg="white")
+        btn_stop_camera.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
     def on_speaker_dropdown_selected(self, event):
         freq = self.freq_var.get()
