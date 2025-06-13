@@ -91,9 +91,9 @@ class ButtonApp:
         self.home_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.home_frame, text='Home')
 
-        # Settings tab
+        # Test Speaker tab (was Settings)
         self.settings_frame = tk.Frame(self.notebook, padx=15, pady=15)
-        self.notebook.add(self.settings_frame, text='Settings')
+        self.notebook.add(self.settings_frame, text='Test Speaker')
 
         # Frequencies for dropdown (Hz)
         self.speaker_freqs = [
@@ -161,14 +161,14 @@ class ButtonApp:
 
         master.protocol("WM_DELETE_WINDOW", self.close_window)
 
-        # --- Settings tab layout ---
+        # --- Test Speaker tab layout ---
         settings_frame = self.settings_frame
         for c in range(2):
             settings_frame.grid_columnconfigure(c, weight=1)
         for r in range(2):
             settings_frame.grid_rowconfigure(r, weight=1)
 
-        # Dropdown (with music) in Settings
+        # Dropdown (with music) in Test Speaker
         self.freq_var = tk.StringVar()
         self.freq_var.set(self.speaker_freqs[0])
         self.speaker_dropdown = ttk.Combobox(
@@ -181,7 +181,7 @@ class ButtonApp:
         self.speaker_dropdown.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.speaker_dropdown.bind("<<ComboboxSelected>>", self.on_speaker_dropdown_selected)
 
-        # Stop Speaker Test button in Settings
+        # Stop Speaker Test button in Test Speaker
         btn_stop_speaker = tk.Button(settings_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
         btn_stop_speaker.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
