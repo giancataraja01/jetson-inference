@@ -62,7 +62,7 @@ def fetch_detections(frame):
                     # Play sound if not already playing
                     if sound_process is None or sound_process.poll() is not None:
                         try:
-                            sound_process = subprocess.Popen(['aplay', './12000.wav'])
+                            sound_process = subprocess.Popen(['aplay', './10khz.wav'])
                         except Exception as e:
                             print(f"Could not play sound: {e}")
                 else:
