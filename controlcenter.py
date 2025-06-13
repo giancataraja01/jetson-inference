@@ -34,7 +34,7 @@ player_ref = db.reference('player')
 
 def read_trigger_file():
     try:
-        with open(FILE_PATH, ' 'r') as file:
+        with open(FILE_PATH, 'r') as file:
             content = file.read().strip().lower()
             return content == 'true'
     except FileNotFoundError:
