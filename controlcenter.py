@@ -95,6 +95,11 @@ class ButtonApp:
         self.settings_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.settings_frame, text='Test Speaker')
 
+        # --- NEW: Test Camera tab ---
+        self.test_camera_frame = tk.Frame(self.notebook, padx=15, pady=15)
+        self.notebook.add(self.test_camera_frame, text='Test Camera')
+        # (Add widgets to self.test_camera_frame as needed)
+
         # Frequencies for dropdown (Hz)
         self.speaker_freqs = [
             "10khz", "11khz", "13khz", "14khz", "15khz", "16khz", "17khz", "18khz", "19khz", "20khz",
@@ -184,6 +189,15 @@ class ButtonApp:
         # Stop Speaker Test button in Test Speaker
         btn_stop_speaker = tk.Button(settings_frame, text="Stop Speaker Test", font=button_font, command=self.stop_speaker_clicked, bg="#1c8be0", fg="white")
         btn_stop_speaker.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+
+        # --- (Optional) Test Camera tab layout ---
+        test_camera_frame = self.test_camera_frame
+        for c in range(2):
+            test_camera_frame.grid_columnconfigure(c, weight=1)
+        for r in range(2):
+            test_camera_frame.grid_rowconfigure(r, weight=1)
+        # Example: add a button (customize as needed)
+        tk.Label(test_camera_frame, text="Test Camera Tab", font=button_font).grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
     def on_speaker_dropdown_selected(self, event):
         freq = self.freq_var.get()
