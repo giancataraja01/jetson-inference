@@ -124,29 +124,9 @@ class ButtonApp:
         self.home_distance_label = tk.Label(main_frame, textvariable=self.distance_var, font=button_font, fg="#1338be")
         self.home_distance_label.grid(row=4, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)
 
-        # Dropdown (require selection before enabling Start Detection)
-        self.display_freq_var = tk.StringVar()
-        self.display_freq_var.set("Select Frequency...")  # Set default value
-        self.display_freq_dropdown = ttk.Combobox(
-            main_frame,
-            textvariable=self.display_freq_var,
-            values=["Select Frequency..."] + self.speaker_freqs,
-            font=button_font,
-            state="readonly"
-        )
-        self.display_freq_dropdown.grid(row=0, column=3, sticky="nsew", padx=5, pady=5)
-
-        # Start Detection button (disabled by default)
-        self.btn_start_detection = tk.Button(main_frame, text="Start Detection", font=button_font, command=self.start_camera_clicked, state=tk.DISABLED)
+        # Start Detection button (enabled by default)
+        self.btn_start_detection = tk.Button(main_frame, text="Start Detection", font=button_font, command=self.start_camera_clicked, state=tk.NORMAL)
         self.btn_start_detection.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-
-        # Enable/disable Start Detection based on dropdown selection
-        def check_start_detection_state(*args):
-            if self.display_freq_var.get() != "Select Frequency...":
-                self.btn_start_detection.config(state=tk.NORMAL)
-            else:
-                self.btn_start_detection.config(state=tk.DISABLED)
-        self.display_freq_var.trace_add("write", check_start_detection_state)
 
         btn_stop_detection = tk.Button(
             main_frame, text="Stop Detection", font=button_font,
@@ -248,11 +228,8 @@ class ButtonApp:
                 print("Existing camera process terminated.")
                 self.camera_process = None
 
-            freq = self.display_freq_var.get()
-            if freq == "10khz":
-                script = "my_detection.py"
-            else:
-                script = f"my_detection{freq}.py"
+            # Only use my_detection.py
+            script = "my_detection.py"
             self.camera_process = subprocess.Popen(['python3', script])
             print(f"Camera started using {script}.")
             self.start_distance_monitoring()
