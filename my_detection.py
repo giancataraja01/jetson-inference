@@ -43,17 +43,18 @@ def measure_distance():
     while GPIO.input(ECHO) == 0:
         if time.time() > timeout_start:
             print("Timeout: ECHO did not go high")
-            return None
+            return None, None
     pulse_start = time.time()
     timeout_end = time.time() + 1
     while GPIO.input(ECHO) == 1:
         if time.time() > timeout_end:
             print("Timeout: ECHO did not go low")
-            return None
+            return None, None
     pulse_end = time.time()
     pulse_duration = pulse_end - pulse_start
     distance_cm = round(pulse_duration * 17150, 2)
-    return distance_cm
+    distance_m = round(distance_cm / 100, 3)
+    return distance_cm, distance_m
 
 def disable_speaker():
     try:
@@ -216,9 +217,9 @@ def draw_detections(frame):
                         cv2.putText(frame, counter_text, (text_x, text_y),
                                     cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 165, 255), 4)
             # --- Distance display inside bounding box ---
-            distance_cm = measure_distance()
-            if distance_cm is not None:
-                distance_text = f"{distance_cm:.1f} cm"
+            distance_cm, distance_m = measure_distance()
+            if distance_cm is not None and distance_m is not None:
+                distance_text = f"{distance_cm:.1f} cm / {distance_m:.2f} m"
             else:
                 distance_text = "N/A"
             # Draw distance text at the center of the bounding box, below the counter if present
