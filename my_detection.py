@@ -5,6 +5,7 @@ import time
 import threading
 import math
 import subprocess
+import Jetson.GPIO as GPIO
 
 sound_process = None
 
@@ -25,9 +26,37 @@ lock = threading.Lock()
 last_positions = {}
 MOVE_THRESHOLD = 5  # pixels
 
+# Ultrasonic distance sensor configuration
+TRIG = 35  # Physical pin 35
+ECHO = 33  # Physical pin 33
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
+
+def measure_distance():
+    GPIO.output(TRIG, False)
+    time.sleep(0.1)
+    GPIO.output(TRIG, True)
+    time.sleep(0.00001)
+    GPIO.output(TRIG, False)
+    timeout_start = time.time() + 1
+    while GPIO.input(ECHO) == 0:
+        if time.time() > timeout_start:
+            print("Timeout: ECHO did not go high")
+            return None
+    pulse_start = time.time()
+    timeout_end = time.time() + 1
+    while GPIO.input(ECHO) == 1:
+        if time.time() > timeout_end:
+            print("Timeout: ECHO did not go low")
+            return None
+    pulse_end = time.time()
+    pulse_duration = pulse_end - pulse_start
+    distance_cm = round(pulse_duration * 17150, 2)
+    return distance_cm
+
 def disable_speaker():
     try:
-        # Example: Mute speaker using ALSA (adjust for your hardware if needed)
         subprocess.call(['amixer', 'set', 'Speaker', 'mute'])
         print("🔇 Speaker disabled.")
     except Exception as e:
@@ -186,6 +215,20 @@ def draw_detections(frame):
                         text_y = center_y + text_h // 2
                         cv2.putText(frame, counter_text, (text_x, text_y),
                                     cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 165, 255), 4)
+            # --- Distance display inside bounding box ---
+            distance_cm = measure_distance()
+            if distance_cm is not None:
+                distance_text = f"{distance_cm:.1f} cm"
+            else:
+                distance_text = "N/A"
+            # Draw distance text at the center of the bounding box, below the counter if present
+            center_x = int((x1 + x2) / 2)
+            center_y = int((y1 + y2) / 2) + 40  # offset below the countdown
+            (text_w, text_h), baseline = cv2.getTextSize(distance_text, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)
+            text_x = center_x - text_w // 2
+            text_y = center_y + text_h // 2
+            cv2.putText(frame, distance_text, (text_x, text_y),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
 
 def gstreamer_pipeline(
     capture_width=640,
@@ -209,11 +252,13 @@ def main():
         cap = cv2.VideoCapture(gstreamer_pipeline(), cv2.CAP_GSTREAMER)
         if not cap.isOpened():
             print("❌ Could not open USB camera")
+            GPIO.cleanup()
             return
     else:
         frame = cv2.imread(IMAGE_PATH)
         if frame is None:
             print("❌ Could not load image:", IMAGE_PATH)
+            GPIO.cleanup()
             return
 
     print("✅ Roboflow Detection Running. Press 'q' to quit.")
@@ -252,6 +297,7 @@ def main():
     if USE_WEBCAM:
         cap.release()
     cv2.destroyAllWindows()
+    GPIO.cleanup()
 
 if __name__ == "__main__":
     main()
