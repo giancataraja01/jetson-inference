@@ -25,6 +25,14 @@ lock = threading.Lock()
 last_positions = {}
 MOVE_THRESHOLD = 5  # pixels
 
+def disable_speaker():
+    try:
+        # Example: Mute speaker using ALSA (adjust for your hardware if needed)
+        subprocess.call(['amixer', 'set', 'Speaker', 'mute'])
+        print("🔇 Speaker disabled.")
+    except Exception as e:
+        print(f"Could not disable speaker: {e}")
+
 def fetch_detections(frame):
     global timer_start, latest_detections, latest_frame_shape, sound_process
 
@@ -73,6 +81,18 @@ def fetch_detections(frame):
                             sound_process = None
                         except Exception as e:
                             print(f"Could not stop sound: {e}")
+            elif dog_w_collar_detected:
+                # Reset timer and stop sound if playing, and disable speaker
+                timer_start = None
+                if sound_process is not None and sound_process.poll() is None:
+                    try:
+                        sound_process.terminate()
+                        sound_process = None
+                        disable_speaker()
+                    except Exception as e:
+                        print(f"Could not stop sound: {e}")
+                else:
+                    disable_speaker()
             else:
                 # Reset timer and stop sound if playing
                 timer_start = None
