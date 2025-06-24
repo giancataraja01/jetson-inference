@@ -103,11 +103,8 @@ class ButtonApp:
         self.test_distance_frame = tk.Frame(self.notebook, padx=15, pady=15)
         self.notebook.add(self.test_distance_frame, text='Test Distance')
 
-        # Frequencies for dropdown (Hz)
-        self.speaker_freqs = [
-            "10khz", "11khz", "12khz", "13khz", "14khz", "15khz", "16khz", "17khz", "18khz", "19khz", "20khz",
-            "21khz", "22khz", "23khz", "24khz", "25khz", "30khz", "40khz", "50khz", "60khz"
-        ]
+        # Frequencies for dropdown (Hz) -- only 40khz remains
+        self.speaker_freqs = ["40khz"]
 
         # --- Home tab layout ---
         main_frame = self.home_frame
