@@ -32,13 +32,13 @@ firebase_admin.initialize_app(cred, {'databaseURL': FIREBASE_DB_URL})
 distance_ref = db.reference('distance')
 player_ref = db.reference('player')
 
-def read_trigger_file():
+def read_detection_file():
     try:
         with open(FILE_PATH, 'r') as file:
             content = file.read().strip().lower()
-            return content == 'true'
+            return content
     except FileNotFoundError:
-        return False
+        return None
 
 def measure_distance():
     GPIO.output(TRIG, False)
@@ -298,19 +298,25 @@ class ButtonApp:
     def update_distance(self):
         if self.distance_monitoring:
             try:
-                result = measure_distance()
-                if result is not None:
-                    distance_cm, distance_m = result
-                    self.distance_var.set(f"Distance: {distance_cm} cm ({distance_m} m)")
-                    print(f"[Live] Distance: {distance_cm} cm ({distance_m} m)")
-                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                    distance_ref.set({
-                        'cm': distance_cm,
-                        'm': distance_m,
-                        'timestamp': timestamp
-                    })
+                detection = read_detection_file()
+                if detection == "dog_with_collar":
+                    self.distance_var.set("Dog With Collar")
+                elif detection == "dog_without_collar":
+                    result = measure_distance()
+                    if result is not None:
+                        distance_cm, distance_m = result
+                        self.distance_var.set(f"Distance: {distance_cm} cm ({distance_m} m)")
+                        print(f"[Live] Distance: {distance_cm} cm ({distance_m} m)")
+                        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                        distance_ref.set({
+                            'cm': distance_cm,
+                            'm': distance_m,
+                            'timestamp': timestamp
+                        })
+                    else:
+                        self.distance_var.set("Distance: Error")
                 else:
-                    self.distance_var.set("Distance: Error")
+                    self.distance_var.set("")
             except Exception as e:
                 self.distance_var.set("Distance: Error")
                 print(f"Exception in live distance: {e}")
